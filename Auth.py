@@ -1,10 +1,12 @@
 import hashlib
-import pymongo
 import secrets
+import pymongo
+from User import User
+
+# username should be lowercase
 
 db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
-# 745 80
 
 def hashPassword(password, salt):
     salty = password + salt
@@ -21,16 +23,14 @@ def newUser(username, password, isAdmin=False):
                             "password": hashPassword(password, salt),
                             "isAdmin": isAdmin,
                             "salt": salt})
+    return User(db["Users"].find_one({"username": username}))
 
 
-def login(username, password):
+def getUser(username, password):
     user = db["Users"].find_one({"username": username})
     if (user != None and user["password"] == hashPassword(password, user["salt"])):
-        print("logged in")
-    else:
-        print("username and password do not match")
+        return User(user)
+    return None
 
-# newUser(input("username"), input("password"))
-# newUser(input("username"), input("password"), True)
 
-login(input("username"), input("password"))
+# newUser("123", "456")
