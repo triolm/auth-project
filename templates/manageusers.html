@@ -1,0 +1,30 @@
+{% extends "boilerplate.html" %}
+{% block content %}
+<ul class="px-0 col-md-10 offset-md-1">
+    {% for user in users %}
+    <li class="card my-3 w-100">
+        <div class="card-body d-flex flex-row justify-content-between col-12">
+            <span>
+                <strong>{{user.username}}</strong>
+                {% if user.isAdmin %}
+                <span class="lozenge bg-green-50 text-green-500">Admin</span>
+                {%endif%}
+            </span>
+            <span>
+                {% if user.locked %}
+                <form action="./unlock" method="POST">
+                    <input type="hidden" id="username" name="username" value="{{user.username}}">
+                    <button class="btn btn-success">Unlock Account</button>
+                </form>
+                {%else%}
+                <form action="./lock" method="POST">
+                    <input type="hidden" id="username" name="username" value="{{user.username}}">
+                    <button class="btn btn-danger">Lock Account</button>
+                </form>
+                {%endif%}
+            </span>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
