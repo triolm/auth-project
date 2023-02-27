@@ -10,14 +10,20 @@
                 <span class="lozenge bg-green-50 text-green-500">Admin</span>
                 {%endif%}
             </span>
-            <span>
+            <span class="d-flex flex-row">
+                {% if not user.isAdmin %}
+                <form action="./promote" method="POST" class="mx-1">
+                    <input type="hidden" id="username" name="username" value="{{user.username}}">
+                    <button class="btn btn-success">Make Admin</button>
+                </form>
+                {%endif%}
                 {% if user.locked %}
-                <form action="./unlock" method="POST">
+                <form action="./unlock" method="POST" class="mx-1">
                     <input type="hidden" id="username" name="username" value="{{user.username}}">
                     <button class="btn btn-success">Unlock Account</button>
                 </form>
                 {%else%}
-                <form action="./lock" method="POST">
+                <form action="./lock" method="POST" class="mx-1">
                     <input type="hidden" id="username" name="username" value="{{user.username}}">
                     <button class="btn btn-danger">Lock Account</button>
                 </form>

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import get_unlocked_user, lock_user, new_user, unlock_user
+from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
 from bson import ObjectId
 from User import User, lock_expired
 import pymongo
@@ -78,6 +78,14 @@ def lock():
 def unlock():
     if (current_user.is_authenticated and current_user.is_admin()):
         unlock_user(request.form.get("username"))
+        return redirect("/manageusers")
+    return redirect("./home")
+
+
+@app.route("/promote", methods=["POST"])
+def promote():
+    if (current_user.is_authenticated and current_user.is_admin()):
+        make_admin(request.form.get("username"))
         return redirect("/manageusers")
     return redirect("./home")
 

@@ -62,6 +62,16 @@ def unlock_user(username):
     }, upsert=False)
 
 
+def make_admin(username):
+    db["Users"].update_one({
+        'username': username
+    }, {
+        '$set': {
+            'isAdmin': True
+        }
+    }, upsert=False)
+
+
 def get_user(username, password):
     user = db["Users"].find_one({"username": username})
     if (user != None and user["password"] == hashPassword(password, user["salt"])):
