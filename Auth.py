@@ -41,25 +41,23 @@ def new_user(username, password, isAdmin=False):
     return User(db["Users"].find_one({"username": username}))
 
 
-def lock_user(username):
+def set_locked_status(username, status):
     db["Users"].update_one({
         'username': username
     }, {
         '$set': {
             'locktime': time.time(),
-            'locked': True
+            'locked': status
         }
     }, upsert=False)
+
+
+def lock_user(username):
+    set_locked_status(username, True)
 
 
 def unlock_user(username):
-    db["Users"].update_one({
-        'username': username
-    }, {
-        '$set': {
-            'locked': False
-        }
-    }, upsert=False)
+    set_locked_status(username, False)
 
 
 def make_admin(username):
@@ -74,8 +72,36 @@ def make_admin(username):
 
 def get_user(username, password):
     user = db["Users"].find_one({"username": username})
-    if (user != None and user["password"] == hashPassword(password, user["salt"])):
-        return User(user)
+    userObj = User(user)
+    if (user != None):
+        if (user.get("password") == hashPassword(password, user["salt"])):
+            if (userObj.locked() != user.get("locked")):
+                set_locked_status(user.get(username), userObj.locked())
+            return userObj
+
+        fails = user.get("failedAttempts")
+        if (fails == None):
+            fails = [time.time()]
+        else:
+            fails.append(time.time())
+
+            db["Users"].update_one({
+                'username': username
+            }, {
+                '$set': {
+                    'failedAttempts': fails
+                }
+            }, upsert=False)
+
+            if (userObj.lock_possible):
+                db["Users"].update_one({
+                    'username': username
+                }, {
+                    '$set': {
+                        'locked': True
+                    }
+                }, upsert=False)
+
     raise Exception("Username and password do not match")
 
 

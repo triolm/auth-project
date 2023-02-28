@@ -17,19 +17,33 @@ app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User(db["Users"].find_one(ObjectId(user_id)))
+    user = db["Users"].find_one(ObjectId(user_id))
+    if (user):
+        return User(user)
+    print(user_id)
+    return None
+
+
+def is_logged_in():
+    if (current_user.is_authenticated):
+        if (current_user.locked()):
+            lock_user(current_user.get_username())
+            logout_user()
+            flash("Account locked")
+            return False
+    return current_user.is_authenticated
 
 
 @app.route("/")
 def index():
-    if (not current_user.is_authenticated):
+    if (not is_logged_in()):
         return redirect("./login")
     return render_template("./home.html", page="home")
 
 
 @app.route('/login')
 def login_page():
-    if (current_user.is_authenticated):
+    if (is_logged_in()):
         return redirect("./")
     return render_template("./login.html", page="login")
 
@@ -68,7 +82,7 @@ def signup_page():
 
 @app.route("/lock", methods=["POST"])
 def lock():
-    if (current_user.is_authenticated and current_user.is_admin()):
+    if (is_logged_in() and current_user.is_admin()):
         lock_user(request.form.get("username"))
         return redirect("/manageusers")
     return redirect("./home")
@@ -76,7 +90,7 @@ def lock():
 
 @app.route("/unlock", methods=["POST"])
 def unlock():
-    if (current_user.is_authenticated and current_user.is_admin()):
+    if (is_logged_in() and current_user.is_admin()):
         unlock_user(request.form.get("username"))
         return redirect("/manageusers")
     return redirect("./home")
@@ -84,7 +98,7 @@ def unlock():
 
 @app.route("/promote", methods=["POST"])
 def promote():
-    if (current_user.is_authenticated and current_user.is_admin()):
+    if (is_logged_in() and current_user.is_admin()):
         make_admin(request.form.get("username"))
         return redirect("/manageusers")
     return redirect("./home")
@@ -92,7 +106,7 @@ def promote():
 
 @app.route("/manageusers")
 def manage_users():
-    if (current_user.is_authenticated and current_user.is_admin()):
+    if (is_logged_in() and current_user.is_admin()):
         users = list(db["Users"].find())
         for user in users:
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):

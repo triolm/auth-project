@@ -1,6 +1,6 @@
 {% extends "boilerplate.html" %}
 {% block content %}
-{% if current_user != None %}
+{% if current_user.is_authenticated %}
 <p>Hi, {{current_user.get_username()}}!</p>
 {% endif %}
 {% endblock %}
