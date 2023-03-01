@@ -1,3 +1,4 @@
+import random
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
 from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
@@ -112,8 +113,11 @@ def manage_users():
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))
                 user.update({"locked": False})
-        return render_template("./manageusers.html", users=users, page="manageusers.html")
-    return render_template("./home.html", page="home")
+            user.update({"color": random.randint(0, 360)})
+        return render_template("./manageusers.html", users=users, page="manageusers")
+    if is_logged_in():
+        return redirect("/")
+    return redirect("/login")
 
 
 @app.route('/logout')

@@ -44,4 +44,5 @@ class User (UserMixin):
 
 
 def lock_expired(locktime):
+    # return time.time() - locktime > 10
     return time.time() - locktime > 60 * 60

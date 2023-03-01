@@ -10,6 +10,7 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
 # username should be lowercase
 # what if user's account gets deleted while they're still signed in
 # is admin can be null
+# what if login fails on account that doesn't exist
 
 db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
