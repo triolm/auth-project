@@ -11,6 +11,7 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
 # what if user's account gets deleted while they're still signed in
 # is admin can be null
 # what if login fails on account that doesn't exist
+# what if an account is unlocked, should it require three more attempts to lock
 
 db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
@@ -21,6 +22,7 @@ def hashPassword(password, salt):
 
 
 def new_user(username, password, isAdmin=False):
+    username = username.lower()
     isAdmin = bool(isAdmin)
     if (not username or username == ""):
         raise Exception("Please enter a username")
@@ -44,7 +46,7 @@ def new_user(username, password, isAdmin=False):
 
 def set_locked_status(username, status):
     db["Users"].update_one({
-        'username': username
+        'username': username.lower()
     }, {
         '$set': {
             'locktime': time.time(),
@@ -54,16 +56,16 @@ def set_locked_status(username, status):
 
 
 def lock_user(username):
-    set_locked_status(username, True)
+    set_locked_status(username.lower(), True)
 
 
 def unlock_user(username):
-    set_locked_status(username, False)
+    set_locked_status(username.lower(), False)
 
 
 def make_admin(username):
     db["Users"].update_one({
-        'username': username
+        'username': username.lower()
     }, {
         '$set': {
             'isAdmin': True
@@ -72,36 +74,36 @@ def make_admin(username):
 
 
 def get_user(username, password):
+    username = username.lower()
     user = db["Users"].find_one({"username": username})
     userObj = User(user)
-    if (user != None):
-        if (user.get("password") == hashPassword(password, user["salt"])):
-            if (userObj.locked() != user.get("locked")):
-                set_locked_status(user.get(username), userObj.locked())
-            return userObj
+    if (user == None):
+        raise Exception("Username and password do not match")
 
-        fails = user.get("failedAttempts")
-        if (fails == None):
-            fails = [time.time()]
-        else:
-            fails.append(time.time())
+    if (user.get("password") == hashPassword(password, user["salt"])):
+        if (userObj.locked() != user.get("locked")):
+            set_locked_status(user.get(username), userObj.locked())
+        return userObj
 
-            db["Users"].update_one({
-                'username': username
-            }, {
-                '$set': {
-                    'failedAttempts': fails
-                }
-            }, upsert=False)
+    fails = user.get("failedAttempts")
 
-            if (userObj.lock_possible):
-                db["Users"].update_one({
-                    'username': username
-                }, {
-                    '$set': {
-                        'locked': True
-                    }
-                }, upsert=False)
+    if (fails == None):
+        fails = [time.time()]
+    else:
+        fails.append(time.time())
+        print(fails)
+
+    db["Users"].update_one({
+        'username': username
+    }, {
+        '$set': {
+            'failedAttempts': fails
+        }
+    }, upsert=False)
+
+    if (userObj.lock_possible()):
+        lock_user(username)
+        raise Exception("To many failed attempts; Account locked")
 
     raise Exception("Username and password do not match")
 

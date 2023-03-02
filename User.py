@@ -40,7 +40,7 @@ class User (UserMixin):
         for i in self.json.get("failedAttempts"):
             if (not lock_expired(i)):
                 n += 1
-        return n
+        return n >= 3
 
 
 def lock_expired(locktime):
