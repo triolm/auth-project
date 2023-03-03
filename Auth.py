@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 import pymongo
+from Errors import AccountCreationException, LoginException
 from User import User
 import re
 import time
@@ -22,16 +23,20 @@ def hashPassword(password, salt):
 
 
 def new_user(username, password, isAdmin=False):
-    username = username.lower()
+    username = username.lower().strip()
+
+    if (username == password.lower()):
+        raise AccountCreationException("Username and password cannot be equal")
+
     isAdmin = bool(isAdmin)
     if (not username or username == ""):
-        raise Exception("Please enter a username")
+        raise AccountCreationException("Please enter a username")
 
     if (db["Users"].find_one({"username": username})):
-        raise Exception("Username already in use")
+        raise AccountCreationException("Username already in use")
 
     if (re.search(password_requirements, password) == None):
-        raise Exception("Password not strong enough")
+        raise AccountCreationException("Password not strong enough")
 
     salt = secrets.token_hex(16)
 
@@ -78,7 +83,7 @@ def get_user(username, password):
     user = db["Users"].find_one({"username": username})
     userObj = User(user)
     if (user == None):
-        raise Exception("Username and password do not match")
+        raise LoginException("Username and password do not match")
 
     if (user.get("password") == hashPassword(password, user["salt"])):
         if (userObj.locked() != user.get("locked")):
@@ -103,13 +108,13 @@ def get_user(username, password):
 
     if (userObj.lock_possible()):
         lock_user(username)
-        raise Exception("To many failed attempts; Account locked")
+        raise LoginException("To many failed attempts; Account locked")
 
-    raise Exception("Username and password do not match")
+    raise LoginException("Username and password do not match")
 
 
 def get_unlocked_user(username, password):
     user = get_user(username, password)
     if (user.locked()):
-        raise Exception("Account locked")
+        raise LoginException("Account locked")
     return user

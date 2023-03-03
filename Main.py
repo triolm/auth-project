@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
 from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
 from bson import ObjectId
+from Errors import AccountCreationException, LoginException
 from User import User, lock_expired
 import pymongo
 
@@ -21,7 +22,6 @@ def load_user(user_id):
     user = db["Users"].find_one(ObjectId(user_id))
     if (user):
         return User(user)
-    print(user_id)
     return None
 
 
@@ -56,7 +56,7 @@ def login():
                                  request.form.get("password"))
         login_user(user)
         return redirect("./")
-    except Exception as e:
+    except LoginException as e:
         flash(str(e))
         return redirect("./login")
 
@@ -69,7 +69,7 @@ def signup():
                         request.form.get("isAdmin"))
         login_user(user)
         return redirect("./")
-    except Exception as e:
+    except AccountCreationException as e:
         flash(str(e))
         return redirect("./signup")
 
