@@ -22,7 +22,7 @@
                 {% if user.locked %}
                 <form action="./unlock" method="POST" class="mx-1">
                     <input type="hidden" id="username" name="username" value="{{user.username}}">
-                    <button class="btn btn-success">Unlock Account</button>
+                    <button class="btn btn-warning">Unlock Account</button>
                 </form>
                 {%else%}
                 <form action="./lock" method="POST" class="mx-1">

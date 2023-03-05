@@ -13,8 +13,9 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
 # is admin can be null
 # what if login fails on account that doesn't exist
 # what if an account is unlocked, should it require three more attempts to lock
+# take spaces off entered username
 
-db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
+db = pymongo.MongoClient("mongodb://localhost:27017 /")["authApp"]
 
 
 def hashPassword(password, salt):
@@ -25,8 +26,8 @@ def hashPassword(password, salt):
 def new_user(username, password, isAdmin=False):
     username = username.lower().strip()
 
-    if (username == password.lower()):
-        raise AccountCreationException("Username and password cannot be equal")
+    # if (username == password.lower()):
+    #     raise AccountCreationException("Username and password cannot be equal")
 
     isAdmin = bool(isAdmin)
     if (not username or username == ""):
@@ -108,7 +109,7 @@ def get_user(username, password):
 
     if (userObj.lock_possible()):
         lock_user(username)
-        raise LoginException("To many failed attempts; Account locked")
+        raise LoginException("Too many failed attempts; Account locked")
 
     raise LoginException("Username and password do not match")
 
