@@ -1,6 +1,7 @@
 import hashlib
 import random
 import secrets
+import sqlite3
 import pymongo
 from Errors import AccountCreationException, LoginException
 from User import User
@@ -43,6 +44,12 @@ def new_user(username, password, name, isAdmin=False):
 
     salt = secrets.token_hex(16)
 
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'INSERT INTO users(name,username,password,salt, isAdmin,locked,locktime) VALUES (?,?,?,?,?,0,0)', (name, username, hashPassword(password, salt), salt, 1 if isAdmin else 0))
+    conn.commit()
+    conn.close()
+
     db["Users"].insert_one({"username": username,
                             "password": hashPassword(password, salt),
                             "name": name,
@@ -55,6 +62,11 @@ def new_user(username, password, name, isAdmin=False):
 
 
 def set_locked_status(username, status):
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET locked = ?, locktime = ? WHERE username = ?', (1 if status else 0, time.time(), username))
+    conn.commit()
+    conn.close()
     db["Users"].update_one({
         'username': username.lower()
     }, {
@@ -74,6 +86,11 @@ def unlock_user(username):
 
 
 def make_admin(username):
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET isAdmin = 1 WHERE username = ?', (username))
+    conn.commit()
+    conn.close()
     db["Users"].update_one({
         'username': username.lower()
     }, {

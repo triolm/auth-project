@@ -1,3 +1,4 @@
+import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
 from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
@@ -20,6 +21,13 @@ app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 def load_user(user_id):
     user = db["Users"].find_one(ObjectId(user_id))
     if (user):
+
+        conn = sqlite3.connect('database.db')
+        conn.row_factory = sqlite3.Row
+        user = dict(conn.execute(
+            "SELECT * FROM users WHERE username = ?", (user.get("username"),)).fetchall()[0])
+        conn.close()
+
         return User(user)
     return None
 
