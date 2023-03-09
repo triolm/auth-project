@@ -5,9 +5,6 @@ from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
 from bson import ObjectId
 from Errors import AccountCreationException, LoginException
 from User import User, lock_expired
-import pymongo
-
-# db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 login_manager = LoginManager()
 
@@ -19,7 +16,7 @@ app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 
 conn = sqlite3.connect('database.db')
 conn.execute(
-    'CREATE TABLE IF NOT EXISTS users (name TEXT, username TEXT UNIQUE, password TEXT, salt TEXT, isAdmin SMALL INT,locked SMALLINT, locktime BIGINT)')
+    'CREATE TABLE IF NOT EXISTS users (name TEXT, username TEXT UNIQUE, password TEXT, salt TEXT, isAdmin SMALL INT,locked SMALLINT, locktime BIGINT,color INT)')
 conn.execute(
     'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT, timestamp BIGINT)')
 
@@ -29,10 +26,11 @@ def load_user(username):
     print(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
-    user = dict(conn.execute(
-        "SELECT * FROM users WHERE username = ?", (username,)).fetchone())
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
-    if (user):
+    if (user != None):
+        user = dict(user)
         return User(user)
     return None
 
@@ -96,10 +94,13 @@ def signup_page():
 
 @app.route("/lock", methods=["POST"])
 def lock():
-    if (is_logged_in() and current_user.is_admin()):
-        lock_user(request.form.get("username"))
-        return redirect("/manageusers")
-    return redirect("./home")
+    try:
+        if (is_logged_in() and current_user.is_admin()):
+            lock_user(request.form.get("username"))
+            return redirect("/manageusers")
+    except:
+        return redirect("./")
+    return redirect("./")
 
 
 @app.route("/unlock", methods=["POST"])
@@ -130,9 +131,11 @@ def manage_users():
         conn.close()
 
         for user in users:
+            user.update({"locked": bool(user.get("locked"))})
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))
                 user.update({"locked": False})
+
         return render_template("./manageusers.html", users=users, page="manageusers")
     if is_logged_in():
         return redirect("/")

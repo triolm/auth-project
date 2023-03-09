@@ -23,8 +23,7 @@ class User (UserMixin):
         return self.json.get("username")
 
     def is_admin(self):
-        print(self.json.get("isAdmin"))
-        return self.json.get("isAdmin")
+        return bool(self.json.get("isAdmin"))
 
     def check_lock(self):
         if (self.json.get("locked")

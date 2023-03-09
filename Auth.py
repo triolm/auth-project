@@ -1,12 +1,11 @@
 import hashlib
-import random
 import secrets
 import sqlite3
-import pymongo
 from Errors import AccountCreationException, LoginException
 from User import User
 import re
 import time
+import random
 
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
@@ -16,8 +15,6 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 # what if login fails on account that doesn't exist
 # what if an account is unlocked, should it require three more attempts to lock
 # take spaces off entered username
-
-# db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 
 def hashPassword(password, salt):
@@ -34,8 +31,8 @@ def new_user(username, password, name, isAdmin=False):
 
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
-
     isAdmin = bool(isAdmin)
+
     if (not username or username == ""):
         raise AccountCreationException("Please enter a username")
 
@@ -47,8 +44,9 @@ def new_user(username, password, name, isAdmin=False):
 
     salt = secrets.token_hex(16)
 
-    conn.execute(
-        'INSERT INTO users(name,username,password,salt, isAdmin,locked,locktime) VALUES (?,?,?,?,?,0,0)', (name, username, hashPassword(password, salt), salt, 1 if isAdmin else 0))
+    user = conn.execute(
+        'INSERT INTO users(name,username,password,salt, isAdmin,locked,locktime,color) VALUES (?,?,?,?,?,0,0,?)',
+        (name, username, hashPassword(password, salt), salt, 1 if isAdmin else 0, random.randint(1, 360)))
     user = dict(conn.execute(
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone())
     conn.commit()
@@ -92,20 +90,13 @@ def get_user(username, password):
         log_failed_login(username)
         raise LoginException("Username and password do not match")
 
-    userObj = User(dict(user))
+    user = dict(user)
+    userObj = User(user)
 
     if (user.get("password") == hashPassword(password, user["salt"])):
-        if (userObj.locked() != user.get("locked")):
+        if (userObj.locked() != bool(user.get("locked"))):
             set_locked_status(user.get(username), userObj.locked())
         return userObj
-
-    fails = user.get("failedAttempts")
-
-    if (fails == None):
-        fails = [time.time()]
-    else:
-        fails.append(time.time())
-        print(fails)
 
     log_failed_login(username)
 
