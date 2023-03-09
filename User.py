@@ -7,13 +7,14 @@ class User (UserMixin):
         self.json = user
 
     def get_id(self):
-        return str(self.json.get("_id"))
+        # return str(self.json.get("_id"))
+        return self.json.get("username")
 
     def is_authenticated(self):
         return True
 
-    # def is_active(self):
-    #     return self.active
+    def is_active(self):
+        return not self.locked()
 
     def is_anonymous(self):
         return False
@@ -33,15 +34,6 @@ class User (UserMixin):
     def locked(self):
         self.check_lock()
         return self.json.get("locked")
-
-    def lock_possible(self):
-        if (self.json.get("failedAttempts") == None):
-            return 0
-        n = 0
-        for i in self.json.get("failedAttempts"):
-            if (not lock_expired(i)):
-                n += 1
-        return n >= 3
 
 
 def lock_expired(locktime):

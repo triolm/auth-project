@@ -7,7 +7,7 @@ from Errors import AccountCreationException, LoginException
 from User import User, lock_expired
 import pymongo
 
-db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
+# db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 login_manager = LoginManager()
 
@@ -17,17 +17,22 @@ login_manager.init_app(app)
 app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 
 
+conn = sqlite3.connect('database.db')
+conn.execute(
+    'CREATE TABLE IF NOT EXISTS users (name TEXT, username TEXT UNIQUE, password TEXT, salt TEXT, isAdmin SMALL INT,locked SMALLINT, locktime BIGINT)')
+conn.execute(
+    'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT, timestamp BIGINT)')
+
+
 @login_manager.user_loader
-def load_user(user_id):
-    user = db["Users"].find_one(ObjectId(user_id))
+def load_user(username):
+    print(username)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    user = dict(conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone())
+    conn.close()
     if (user):
-
-        conn = sqlite3.connect('database.db')
-        conn.row_factory = sqlite3.Row
-        user = dict(conn.execute(
-            "SELECT * FROM users WHERE username = ?", (user.get("username"),)).fetchall()[0])
-        conn.close()
-
         return User(user)
     return None
 
@@ -116,7 +121,14 @@ def promote():
 @app.route("/manageusers")
 def manage_users():
     if (is_logged_in() and current_user.is_admin()):
-        users = list(db["Users"].find().sort("username"))
+
+        conn = sqlite3.connect('database.db')
+        conn.row_factory = sqlite3.Row
+        users = conn.execute(
+            "SELECT * FROM users")
+        users = [dict(row) for row in users.fetchall()]
+        conn.close()
+
         for user in users:
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))

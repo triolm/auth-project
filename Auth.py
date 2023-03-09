@@ -17,7 +17,7 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 # what if an account is unlocked, should it require three more attempts to lock
 # take spaces off entered username
 
-db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
+# db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 
 def hashPassword(password, salt):
@@ -32,11 +32,14 @@ def new_user(username, password, name, isAdmin=False):
     # if (username == password.lower()):
     #     raise AccountCreationException("Username and password cannot be equal")
 
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+
     isAdmin = bool(isAdmin)
     if (not username or username == ""):
         raise AccountCreationException("Please enter a username")
 
-    if (db["Users"].find_one({"username": username})):
+    if (conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()):
         raise AccountCreationException("Username already in use")
 
     if (re.search(password_requirements, password) == None):
@@ -44,21 +47,14 @@ def new_user(username, password, name, isAdmin=False):
 
     salt = secrets.token_hex(16)
 
-    conn = sqlite3.connect('database.db')
     conn.execute(
         'INSERT INTO users(name,username,password,salt, isAdmin,locked,locktime) VALUES (?,?,?,?,?,0,0)', (name, username, hashPassword(password, salt), salt, 1 if isAdmin else 0))
+    user = dict(conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone())
     conn.commit()
     conn.close()
 
-    db["Users"].insert_one({"username": username,
-                            "password": hashPassword(password, salt),
-                            "name": name,
-                            "color": random.randint(0, 360),
-                            "isAdmin": isAdmin,
-                            "salt": salt,
-                            "locktime": 0,
-                            "locked": False})
-    return User(db["Users"].find_one({"username": username}))
+    return User(user)
 
 
 def set_locked_status(username, status):
@@ -67,14 +63,6 @@ def set_locked_status(username, status):
         'UPDATE users SET locked = ?, locktime = ? WHERE username = ?', (1 if status else 0, time.time(), username))
     conn.commit()
     conn.close()
-    db["Users"].update_one({
-        'username': username.lower()
-    }, {
-        '$set': {
-            'locktime': time.time(),
-            'locked': status
-        }
-    }, upsert=False)
 
 
 def lock_user(username):
@@ -88,24 +76,23 @@ def unlock_user(username):
 def make_admin(username):
     conn = sqlite3.connect('database.db')
     conn.execute(
-        'UPDATE users SET isAdmin = 1 WHERE username = ?', (username))
+        'UPDATE users SET isAdmin = 1 WHERE username = ?', (username,))
     conn.commit()
     conn.close()
-    db["Users"].update_one({
-        'username': username.lower()
-    }, {
-        '$set': {
-            'isAdmin': True
-        }
-    }, upsert=False)
 
 
 def get_user(username, password):
     username = username.lower()
-    user = db["Users"].find_one({"username": username})
-    userObj = User(user)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     if (user == None):
+        log_failed_login(username)
         raise LoginException("Username and password do not match")
+
+    userObj = User(dict(user))
 
     if (user.get("password") == hashPassword(password, user["salt"])):
         if (userObj.locked() != user.get("locked")):
@@ -120,19 +107,31 @@ def get_user(username, password):
         fails.append(time.time())
         print(fails)
 
-    db["Users"].update_one({
-        'username': username
-    }, {
-        '$set': {
-            'failedAttempts': fails
-        }
-    }, upsert=False)
+    log_failed_login(username)
 
-    if (userObj.lock_possible()):
+    if (fails_over_thresh(username)):
         lock_user(username)
         raise LoginException("Too many failed attempts; Account locked")
 
     raise LoginException("Username and password do not match")
+
+
+def log_failed_login(username):
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'INSERT INTO failedlogins (username,timestamp) VALUES (?,?)', (username, time.time()))
+    conn.commit()
+    conn.close()
+
+
+def fails_over_thresh(username):
+    conn = sqlite3.connect('database.db')
+    fails = conn.execute(
+        'SELECT timestamp FROM failedlogins WHERE username = ? AND timestamp >= ?', (username, time.time() - 60*60))
+    nfails = len(fails.fetchall())
+    conn.commit()
+    conn.close()
+    return nfails >= 3
 
 
 def get_unlocked_user(username, password):
