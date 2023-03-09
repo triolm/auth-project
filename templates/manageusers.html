@@ -6,11 +6,10 @@
         <div class="card-body d-flex flex-row justify-content-between col-12">
             <span>
                 <span class="avatar me-2"
-                    style="background-color:hsl({{user.color}},50%,50%)">{{user.username[0].upper()}}</span>
-                <strong>{{user.username}}</strong>
-                {% if user.username == current_user.get_username() %}
-                <span class="lozenge bg-purple-50 text-purple-500">You</span>
-                {%endif%}
+                    style="background-color:hsl({{user.color}},50%,50%)">{{user.name[0].upper()}}</span>
+                <strong>{{user.name}}
+                    <span class="text-muted">{{user.username}}</span>
+                </strong>
                 {% if user.isAdmin %}
                 <span class="lozenge bg-green-50 text-green-500">Admin</span>
                 {%endif%}

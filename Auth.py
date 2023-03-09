@@ -1,4 +1,5 @@
 import hashlib
+import random
 import secrets
 import pymongo
 from Errors import AccountCreationException, LoginException
@@ -23,8 +24,9 @@ def hashPassword(password, salt):
     return hashlib.sha256(salty.encode()).hexdigest()
 
 
-def new_user(username, password, isAdmin=False):
+def new_user(username, password, name, isAdmin=False):
     username = username.lower().strip()
+    name = name.strip()
 
     # if (username == password.lower()):
     #     raise AccountCreationException("Username and password cannot be equal")
@@ -43,6 +45,8 @@ def new_user(username, password, isAdmin=False):
 
     db["Users"].insert_one({"username": username,
                             "password": hashPassword(password, salt),
+                            "name": name,
+                            "color": random.randint(0, 360),
                             "isAdmin": isAdmin,
                             "salt": salt,
                             "locktime": 0,
