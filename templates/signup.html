@@ -13,17 +13,29 @@
         <input type="password" class="form-control" name="password" id="password" required>
 
         <div class="mt-3">
+            <label for="customRange1" class="form-label">Phone Number</label>
+            <p id="phone"></p>
+            <input type="range" class="form-range" id="phonenumber" step="1" min="2010000000" max="9900000000">
+        </div>
+
+        <div class="mt-3">
             <input class="form-check-input" type="checkbox" value="True" id="isAdmin" name="isAdmin">
             <label class="form-check-label" for="isAdmin">
                 Are you an Admin?
             </label>
-        </div>
+            <div class="col-auto mt-3">
+                <button type="submit" class="btn btn-primary">Sign Up</button>
 
-        <div class="col-auto mt-3">
-            <button type="submit" class="btn btn-primary">Sign Up</button>
-
-        </div>
+            </div>
     </form>
 </div>
+<script>
+    let phonetext = document.querySelector("#phone");
+    let phonen = document.querySelector("#phonenumber")
+    phonen.addEventListener("input", () => {
+        let val = phonen.value
+        phonetext.textContent = "(" + val.substring(0, 3) + ")-" + val.substring(3, 6) + "-" + val.substring(6);
+    })
+</script>
 {% include "formvalidate.html" %}
 {% endblock %}

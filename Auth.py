@@ -6,7 +6,7 @@ from User import User
 import re
 import time
 
-password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
+password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
 # username should be lowercase
 # what if user's account gets deleted while they're still signed in
@@ -15,7 +15,7 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
 # what if an account is unlocked, should it require three more attempts to lock
 # take spaces off entered username
 
-db = pymongo.MongoClient("mongodb://localhost:27017 /")["authApp"]
+db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 
 def hashPassword(password, salt):

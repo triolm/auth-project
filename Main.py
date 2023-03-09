@@ -108,7 +108,7 @@ def promote():
 @app.route("/manageusers")
 def manage_users():
     if (is_logged_in() and current_user.is_admin()):
-        users = list(db["Users"].find())
+        users = list(db["Users"].find().sort("username"))
         for user in users:
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))
@@ -120,7 +120,7 @@ def manage_users():
     return redirect("/login")
 
 
-@app.route('/logout')
+@ app.route('/logout')
 def logout():
     logout_user()
     return redirect("./")
