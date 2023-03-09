@@ -1,4 +1,3 @@
-import random
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
 from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
@@ -66,6 +65,7 @@ def signup():
     try:
         user = new_user(request.form.get("username"),
                         request.form.get("password"),
+                        request.form.get("name"),
                         request.form.get("isAdmin"))
         login_user(user)
         return redirect("./")
@@ -113,14 +113,13 @@ def manage_users():
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))
                 user.update({"locked": False})
-            user.update({"color": random.randint(0, 360)})
         return render_template("./manageusers.html", users=users, page="manageusers")
     if is_logged_in():
         return redirect("/")
     return redirect("/login")
 
 
-@app.route('/logout')
+@ app.route('/logout')
 def logout():
     logout_user()
     return redirect("./")

@@ -1,4 +1,5 @@
 import hashlib
+import random
 import secrets
 import pymongo
 from Errors import AccountCreationException, LoginException
@@ -6,7 +7,7 @@ from User import User
 import re
 import time
 
-password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
+password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
 # username should be lowercase
 # what if user's account gets deleted while they're still signed in
@@ -15,7 +16,7 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{8,}"
 # what if an account is unlocked, should it require three more attempts to lock
 # take spaces off entered username
 
-db = pymongo.MongoClient("mongodb://localhost:27017 /")["authApp"]
+db = pymongo.MongoClient("mongodb://localhost:27017/")["authApp"]
 
 
 def hashPassword(password, salt):
@@ -23,8 +24,9 @@ def hashPassword(password, salt):
     return hashlib.sha256(salty.encode()).hexdigest()
 
 
-def new_user(username, password, isAdmin=False):
+def new_user(username, password, name, isAdmin=False):
     username = username.lower().strip()
+    name = name.strip()
 
     # if (username == password.lower()):
     #     raise AccountCreationException("Username and password cannot be equal")
@@ -43,6 +45,8 @@ def new_user(username, password, isAdmin=False):
 
     db["Users"].insert_one({"username": username,
                             "password": hashPassword(password, salt),
+                            "name": name,
+                            "color": random.randint(0, 360),
                             "isAdmin": isAdmin,
                             "salt": salt,
                             "locktime": 0,
