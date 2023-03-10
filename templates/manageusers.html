@@ -13,12 +13,21 @@
                 {% if user.isAdmin %}
                 <span class="lozenge bg-green-50 text-green-500">Admin</span>
                 {%endif%}
+                {% if user.username == current_user.get_username() %}
+                <span class="lozenge bg-purple-50 text-purple-500">You</span>
+                {%endif%}
             </span>
             <span class="d-flex flex-row">
                 {% if not user.isAdmin %}
                 <form action="./promote" method="POST" class="mx-1">
                     <input type="hidden" id="username" name="username" value="{{user.username}}">
                     <button class="btn btn-success">Make Admin</button>
+                </form>
+
+                {%elif user.username != current_user.get_username()%}
+                <form action="./demote" method="POST" class="mx-1">
+                    <input type="hidden" id="username" name="username" value="{{user.username}}">
+                    <button class="btn btn-danger">Demote to User</button>
                 </form>
                 {%endif%}
                 {% if user.locked %}
@@ -27,7 +36,7 @@
                     <button class="btn btn-warning">Unlock Account</button>
                 </form>
                 {%endif%}
-                {% if user.username != current_user.get_username()%}
+                {% if not user.locked and user.username != current_user.get_username()%}
                 <form action="./lock" method="POST" class="mx-1">
                     <input type="hidden" id="username" name="username" value="{{user.username}}">
                     <button class="btn btn-danger">Lock Account</button>

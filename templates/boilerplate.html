@@ -18,8 +18,8 @@
 <body>
     {% include "navbar.html" %}
     <ul class="flashes col-10 offset-1 mt-2">
-        {% for message in get_flashed_messages() %}
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
             {{message}}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 

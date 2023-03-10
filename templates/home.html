@@ -2,7 +2,7 @@
 {% block content %}
 {% if current_user.is_authenticated %}
 <div class="mx-3">
-    <p>Hi, {{current_user.get_username()}}!</p>
+    <p>Hi, {{current_user.get_name()}}!</p>
     <p>You are {{"" if current_user.is_admin() else "not"}} an admin.</p>
 </div>
 

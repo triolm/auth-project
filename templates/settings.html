@@ -1,0 +1,31 @@
+{% extends "boilerplate.html" %}
+{% block content %}
+<div class="card col-md-6 offset-md-3 col-10 offset-1">
+    <form action="./settings" class="card-body needs-validation" method="post" novalidate>
+        <h5 class="card-title">Settings</h5>
+        <div class="mt-3">
+            <label for="customRange1" class="form-label">Avatar Color</label>
+            <span class="avatar me-2" id="avatar"
+                style="background-color:hsl({{current_user.get_color()}},50%,50%)">{{current_user.get_name()[0].upper()}}</span>
+            <strong>
+                <input type="range" class="form-range" name="color" id="color" step="1" min="0" max="360">
+        </div>
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" name="name" id="name" placeholder="{{current_user.get_name()}}"
+            value="{{current_user.get_name()}}" required>
+
+        <div class="col-auto mt-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+    <script>
+        let avatar = document.querySelector("#avatar");
+        let colorslider = document.querySelector("#color")
+        colorslider.addEventListener("input", () => {
+            let val = colorslider.value
+            avatar.style.backgroundColor = `hsl(${colorslider.value}, 50%, 50%)`;
+        })
+    </script>
+</div>
+{% include "formvalidate.html" %}
+{% endblock %}

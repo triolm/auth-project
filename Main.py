@@ -1,10 +1,10 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import get_unlocked_user, lock_user, make_admin, new_user, unlock_user
-from bson import ObjectId
+from Auth import get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, unlock_user, unmake_admin
 from Errors import AccountCreationException, LoginException
 from User import User, lock_expired
+# from bson import ObjectId
 
 login_manager = LoginManager()
 
@@ -40,7 +40,7 @@ def is_logged_in():
         if (current_user.locked()):
             lock_user(current_user.get_username())
             logout_user()
-            flash("Account locked")
+            flash("Account locked", "danger")
             return False
     return current_user.is_authenticated
 
@@ -65,9 +65,10 @@ def login():
         user = get_unlocked_user(request.form.get("username"),
                                  request.form.get("password"))
         login_user(user)
+        flash("logged in", "success")
         return redirect("./")
     except LoginException as e:
-        flash(str(e))
+        flash(str(e), "danger")
         return redirect("./login")
 
 
@@ -79,9 +80,10 @@ def signup():
                         request.form.get("name"),
                         request.form.get("isAdmin"))
         login_user(user)
+        flash("Account created", "success")
         return redirect("./")
     except AccountCreationException as e:
-        flash(str(e))
+        flash(str(e), "danger")
         return redirect("./signup")
 
 
@@ -97,6 +99,7 @@ def lock():
     try:
         if (is_logged_in() and current_user.is_admin()):
             lock_user(request.form.get("username"))
+            flash("Account locked", "success")
             return redirect("/manageusers")
     except:
         return redirect("./")
@@ -107,16 +110,43 @@ def lock():
 def unlock():
     if (is_logged_in() and current_user.is_admin()):
         unlock_user(request.form.get("username"))
+        flash("Account unlocked", "success")
         return redirect("/manageusers")
-    return redirect("./home")
+    return redirect("./")
 
 
 @app.route("/promote", methods=["POST"])
 def promote():
     if (is_logged_in() and current_user.is_admin()):
         make_admin(request.form.get("username"))
+        flash("Admin privledges added", "success")
         return redirect("/manageusers")
-    return redirect("./home")
+    return redirect("./")
+
+
+@app.route("/demote", methods=["POST"])
+def demote():
+    if (is_logged_in() and current_user.is_admin()):
+        unmake_admin(request.form.get("username"))
+        flash("Admin privledges removed", "success")
+        return redirect("/manageusers")
+    return redirect("./")
+
+
+@app.route("/settings", methods=["POST"])
+def render_settings():
+    if (is_logged_in()):
+        set_color(current_user.get_username(), request.form.get("color"))
+        set_name(current_user.get_username(), request.form.get("name"))
+        flash("Settings updated", "success")
+        return redirect("/settings")
+    return redirect("./")
+
+
+@app.route("/settings")
+def settings():
+    if (is_logged_in()):
+        return render_template("./settings.html")
 
 
 @app.route("/manageusers")
@@ -144,5 +174,6 @@ def manage_users():
 
 @ app.route('/logout')
 def logout():
+    flash("logged out", "success")
     logout_user()
     return redirect("./")

@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 import sqlite3
-from Errors import AccountCreationException, LoginException
+from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User
 import re
 import time
@@ -77,6 +77,34 @@ def make_admin(username):
         'UPDATE users SET isAdmin = 1 WHERE username = ?', (username,))
     conn.commit()
     conn.close()
+
+
+def unmake_admin(username):
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET isAdmin = 0 WHERE username = ?', (username,))
+    conn.commit()
+    conn.close()
+
+
+def set_name(username, name):
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET name = ? WHERE username = ?', (name, username))
+    conn.commit()
+    conn.close()
+
+
+def set_color(username, color):
+    color = int(color)
+    if (not color >= 0 and not color <= 360):
+        raise AccountModificationException("Invalid color value")
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET color = ? WHERE username = ?', (color, username))
+    conn.commit()
+    conn.close()
+    return color
 
 
 def get_user(username, password):
