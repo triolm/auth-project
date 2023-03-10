@@ -34,6 +34,12 @@ class User (UserMixin):
         self.check_lock()
         return self.json.get("locked")
 
+    def get_name(self):
+        return self.json.get("name")
+
+    def get_color(self):
+        return self.json.get("color")
+
 
 def lock_expired(locktime):
     # return time.time() - locktime > 10

@@ -11,10 +11,10 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
 # username should be lowercase
 # what if user's account gets deleted while they're still signed in
-# is admin can be null
 # what if login fails on account that doesn't exist
 # what if an account is unlocked, should it require three more attempts to lock
 # take spaces off entered username
+# users should have ids
 
 
 def hashPassword(password, salt):
