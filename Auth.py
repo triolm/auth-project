@@ -9,17 +9,17 @@ import random
 
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
-# username should be lowercase
-# what if user's account gets deleted while they're still signed in
-# what if login fails on account that doesn't exist
 # what if an account is unlocked, should it require three more attempts to lock
-# take spaces off entered username
 # users should have ids
 
 
 def hashPassword(password, salt):
     salty = password + salt
     return hashlib.sha256(salty.encode()).hexdigest()
+
+
+def valid_password(password):
+    return re.search(password_requirements, password) != None
 
 
 def new_user(username, password, name, isAdmin=False):
@@ -39,7 +39,7 @@ def new_user(username, password, name, isAdmin=False):
     if (conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()):
         raise AccountCreationException("Username already in use")
 
-    if (re.search(password_requirements, password) == None):
+    if (valid_password(password)):
         raise AccountCreationException("Password not strong enough")
 
     salt = secrets.token_hex(16)
@@ -95,6 +95,19 @@ def set_name(username, name):
     conn.close()
 
 
+def set_password(username, oldpass, newpass):
+    user = check_password(username, oldpass)
+    if (not valid_password(newpass)):
+        raise AccountModificationException("Password not strong enough")
+    salt = secrets.token_hex(16)
+    password = hashPassword(newpass, salt)
+    conn = sqlite3.connect('database.db')
+    conn.execute(
+        'UPDATE users SET salt = ?, password = ? WHERE username = ?', (salt, password, username))
+    conn.commit()
+    conn.close()
+
+
 def set_color(username, color):
     color = int(color)
     if (not color >= 0 and not color <= 360):
@@ -107,11 +120,9 @@ def set_color(username, color):
     return color
 
 
-def get_user(username, password):
-    username = username.lower()
+def check_password(username, password):
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
-
     user = conn.execute(
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     if (user == None):
@@ -125,6 +136,15 @@ def get_user(username, password):
         if (userObj.locked() != bool(user.get("locked"))):
             set_locked_status(user.get(username), userObj.locked())
         return userObj
+    raise LoginException("Username and password do not match")
+
+
+def get_user(username, password):
+    username = username.lower()
+
+    user = check_password(username, password)
+    if (user != None):
+        return user
 
     log_failed_login(username)
 

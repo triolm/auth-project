@@ -1,8 +1,8 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, unlock_user, unmake_admin
-from Errors import AccountCreationException, LoginException
+from Auth import get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, set_password, unlock_user, unmake_admin
+from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User, lock_expired
 # from bson import ObjectId
 
@@ -16,9 +16,9 @@ app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 
 conn = sqlite3.connect('database.db')
 conn.execute(
-    'CREATE TABLE IF NOT EXISTS users (name TEXT, username TEXT UNIQUE, password TEXT, salt TEXT, isAdmin SMALL INT,locked SMALLINT, locktime BIGINT,color INT)')
+    'CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, salt TEXT  NOT NULL, isAdmin SMALL INT, locked SMALLINT, locktime BIGINT,color INT)')
 conn.execute(
-    'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT, timestamp BIGINT)')
+    'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT  NOT NULL, timestamp BIGINT  NOT NULL)')
 
 
 @login_manager.user_loader
@@ -134,17 +134,35 @@ def demote():
 
 
 @app.route("/settings", methods=["POST"])
-def render_settings():
+def settings():
     if (is_logged_in()):
-        set_color(current_user.get_username(), request.form.get("color"))
-        set_name(current_user.get_username(), request.form.get("name"))
+        if (request.form.get("color")):
+            set_color(current_user.get_username(), request.form.get("color"))
+        if (request.form.get("name")):
+            set_name(current_user.get_username(), request.form.get("name"))
         flash("Settings updated", "success")
         return redirect("/settings")
     return redirect("./")
 
 
+@app.route("/changepassword", methods=["POST"])
+def change_password():
+    if (is_logged_in()):
+        try:
+            set_password(current_user.get_username(),
+                         request.form.get("oldpass"), request.form.get("newpass"))
+            flash("Settings updated", "success")
+        except LoginException:
+            flash("Old Password Incorrect", "danger")
+        except AccountModificationException:
+            flash("Password not strong enough", "danger")
+        finally:
+            return redirect("/settings")
+    return redirect("./")
+
+
 @app.route("/settings")
-def settings():
+def render_settings():
     if (is_logged_in()):
         return render_template("./settings.html")
 
