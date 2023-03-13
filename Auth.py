@@ -11,6 +11,8 @@ password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
 # what if an account is unlocked, should it require three more attempts to lock
 # users should have ids
+# routes should be more restful
+# make sure conn is always closed and not committed when db wasn't edited
 
 
 def hashPassword(password, salt):
@@ -22,7 +24,7 @@ def valid_password(password):
     return re.search(password_requirements, password) != None
 
 
-def new_user(username, password, name, isAdmin=False):
+def new_user(username, password, name, email, isAdmin=False):
     username = username.lower().strip()
     name = name.strip()
 
@@ -39,14 +41,14 @@ def new_user(username, password, name, isAdmin=False):
     if (conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()):
         raise AccountCreationException("Username already in use")
 
-    if (valid_password(password)):
+    if (not valid_password(password)):
         raise AccountCreationException("Password not strong enough")
 
     salt = secrets.token_hex(16)
 
     user = conn.execute(
-        'INSERT INTO users(name,username,password,salt, isAdmin,locked,locktime,color) VALUES (?,?,?,?,?,0,0,?)',
-        (name, username, hashPassword(password, salt), salt, 1 if isAdmin else 0, random.randint(1, 360)))
+        'INSERT INTO users(name,username,password,salt, email, isAdmin,locked,locktime,color) VALUES (?,?,?,?,?,?,0,0,?)',
+        (name, username, hashPassword(password, salt), salt, email, 1 if isAdmin else 0, random.randint(1, 360)))
     user = dict(conn.execute(
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone())
     conn.commit()
@@ -97,13 +99,18 @@ def set_name(username, name):
 
 def set_password(username, oldpass, newpass):
     user = check_password(username, oldpass)
-    if (not valid_password(newpass)):
+    set_password_without_old_password(username, newpass)
+
+
+def set_password_without_old_password(username, password):
+    username = username.lower().strip()
+    if (not valid_password(password)):
         raise AccountModificationException("Password not strong enough")
     salt = secrets.token_hex(16)
-    password = hashPassword(newpass, salt)
+    hashed = hashPassword(password, salt)
     conn = sqlite3.connect('database.db')
     conn.execute(
-        'UPDATE users SET salt = ?, password = ? WHERE username = ?', (salt, password, username))
+        'UPDATE users SET salt = ?, password = ? WHERE username = ?', (salt, hashed, username))
     conn.commit()
     conn.close()
 
@@ -129,6 +136,7 @@ def check_password(username, password):
         log_failed_login(username)
         raise LoginException("Username and password do not match")
 
+    conn.close()
     user = dict(user)
     userObj = User(user)
 
@@ -178,3 +186,34 @@ def get_unlocked_user(username, password):
     if (user.locked()):
         raise LoginException("Account locked")
     return user
+
+
+def create_password_reset_token(username):
+    username = username.lower().strip()
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    if (user == None):
+        return None
+    token = secrets.token_urlsafe(16)
+    salt = secrets.token_hex(16)
+    hash = hashPassword(token, salt)
+    conn.execute(
+        'INSERT INTO passwordreset (username,token,salt,timestamp) VALUES (?,?,?,?)', (username, hash, salt, time.time()))
+    conn.commit()
+    conn.close()
+    return token
+
+
+def verify_password_reset_token(token, username):
+    username = username.strip().lower()
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    user = conn.execute(
+        "SELECT * FROM passwordreset WHERE username = ?", (username,)).fetchone()
+    if (not user):
+        return False
+    user = dict(user)
+    conn.close()
+    return user.get("token") == hashPassword(token, user.get("salt"))

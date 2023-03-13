@@ -21,11 +21,14 @@
         </form>
         <form action="./changepassword" class="needs-validation" method="post" novalidate>
             <h5 class="card-title mt-3">Account</h5>
+
+            <p class="form-label">Your email is {{current_user.get_email()}}</p>
+
             <label for="oldpass" class="form-label">Old Password</label>
-            <input type="text" class="form-control" name="oldpass" id="oldpass" required>
+            <input type="password" class="form-control" name="oldpass" id="oldpass" required>
 
             <label for="newpass" class="form-label">New Password</label>
-            <input type="text" class="form-control" name="newpass" id="newpass" required>
+            <input type="password" class="form-control" name="newpass" id="newpass" required>
 
             <div class="col-auto mt-3">
                 <button type="submit" class="btn btn-primary">Change Password</button>

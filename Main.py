@@ -1,7 +1,7 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, set_password, unlock_user, unmake_admin
+from Auth import create_password_reset_token, get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, set_password, set_password_without_old_password, unlock_user, unmake_admin, verify_password_reset_token
 from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User, lock_expired
 # from bson import ObjectId
@@ -16,9 +16,21 @@ app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
 
 conn = sqlite3.connect('database.db')
 conn.execute(
-    'CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, salt TEXT  NOT NULL, isAdmin SMALL INT, locked SMALLINT, locktime BIGINT,color INT)')
+    'CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, salt TEXT  NOT NULL, isAdmin SMALL INT, email TEXT NOT NULL, locked SMALLINT, locktime BIGINT,color INT)')
 conn.execute(
     'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT  NOT NULL, timestamp BIGINT  NOT NULL)')
+conn.execute(
+    'CREATE TABLE IF NOT EXISTS passwordreset (username TEXT  NOT NULL, token TEXT NOT NULL, salt NOT NULL, timestamp BIGINT  NOT NULL)')
+
+
+def is_logged_in():
+    if (current_user.is_authenticated):
+        if (current_user.locked()):
+            lock_user(current_user.get_username())
+            logout_user()
+            flash("Account locked", "danger")
+            return False
+    return current_user.is_authenticated
 
 
 @login_manager.user_loader
@@ -33,16 +45,6 @@ def load_user(username):
         user = dict(user)
         return User(user)
     return None
-
-
-def is_logged_in():
-    if (current_user.is_authenticated):
-        if (current_user.locked()):
-            lock_user(current_user.get_username())
-            logout_user()
-            flash("Account locked", "danger")
-            return False
-    return current_user.is_authenticated
 
 
 @app.route("/")
@@ -78,6 +80,7 @@ def signup():
         user = new_user(request.form.get("username"),
                         request.form.get("password"),
                         request.form.get("name"),
+                        request.form.get("email"),
                         request.form.get("isAdmin"))
         login_user(user)
         flash("Account created", "success")
@@ -158,13 +161,26 @@ def change_password():
             flash("Password not strong enough", "danger")
         finally:
             return redirect("/settings")
-    return redirect("./")
+
+    elif (request.form.get('username') and request.form.get('token')):
+        try:
+            if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
+                set_password_without_old_password(request.form.get('username'),
+                                                  request.form.get('password'))
+            flash("Password updated", "success")
+            return redirect("/login")
+        except AccountModificationException:
+            flash("Password not strong enough", "danger")
+        finally:
+            print(request.referrer)
+            return redirect(request.referrer)
 
 
 @app.route("/settings")
 def render_settings():
     if (is_logged_in()):
         return render_template("./settings.html")
+    return redirect("./")
 
 
 @app.route("/manageusers")
@@ -195,3 +211,18 @@ def logout():
     flash("logged out", "success")
     logout_user()
     return redirect("./")
+
+
+@app.route("/resetpassword")
+def password_reset_page():
+    if (request.args.get('token')):
+        if ((verify_password_reset_token(request.args.get('token'),
+                                         request.args.get('username')))):
+            return render_template("./changepassword.html", username=request.args.get('username'), token=request.args.get('token'))
+    return render_template("./passwordreset.html")
+
+
+@app.route("/resetpassword", methods=["POST"])
+def password_reset():
+    token = create_password_reset_token(request.form.get("username"))
+    return token

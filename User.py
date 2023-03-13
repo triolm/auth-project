@@ -40,6 +40,9 @@ class User (UserMixin):
     def get_color(self):
         return self.json.get("color")
 
+    def get_email(self):
+        return self.json.get("email")
+
 
 def lock_expired(locktime):
     # return time.time() - locktime > 10
