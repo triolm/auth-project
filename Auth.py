@@ -6,6 +6,13 @@ from User import User
 import re
 import time
 import random
+import os
+from dotenv import load_dotenv
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+load_dotenv()
+
 
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
@@ -217,3 +224,19 @@ def verify_password_reset_token(token, username):
     user = dict(user)
     conn.close()
     return user.get("token") == hashPassword(token, user.get("salt"))
+
+
+def send_password_reset_email(token, email):
+    message = Mail(
+        from_email='triolm24+authapp@polyprep.org',
+        to_emails=email + "",
+        subject='I am sending an email',
+        html_content=token + "")
+    try:
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        response = sg.send(message)
+        print(response.status_code)
+        print(response.body)
+        print(response.headers)
+    except Exception as e:
+        print(e.message)

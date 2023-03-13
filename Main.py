@@ -1,7 +1,7 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import create_password_reset_token, get_unlocked_user, lock_user, make_admin, new_user, set_color, set_name, set_password, set_password_without_old_password, unlock_user, unmake_admin, verify_password_reset_token
+from Auth import create_password_reset_token, get_unlocked_user, lock_user, make_admin, new_user, send_password_reset_email, set_color, set_name, set_password, set_password_without_old_password, unlock_user, unmake_admin, verify_password_reset_token
 from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User, lock_expired
 # from bson import ObjectId
@@ -224,5 +224,15 @@ def password_reset_page():
 
 @app.route("/resetpassword", methods=["POST"])
 def password_reset():
+    username = request.form.get("username").strip().lower()
     token = create_password_reset_token(request.form.get("username"))
-    return token
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    if (user != None):
+        user = User(dict(user))
+        send_password_reset_email(token, user.get_email())
+        return user.get_email()
+    return "user does not exist"
