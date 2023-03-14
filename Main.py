@@ -1,7 +1,10 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, flash
 from flask_login import LoginManager, login_user, logout_user, current_user
-from Auth import create_password_reset_token, get_unlocked_user, lock_user, make_admin, new_user, send_password_reset_email, set_color, set_name, set_password, set_password_without_old_password, unlock_user, unmake_admin, verify_password_reset_token
+from AccountDetails import *
+from Auth import *
+from Locking import *
+from PasswordReset import *
 from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User, lock_expired
 # from bson import ObjectId
@@ -20,7 +23,7 @@ conn.execute(
 conn.execute(
     'CREATE TABLE IF NOT EXISTS failedlogins (username TEXT  NOT NULL, timestamp BIGINT  NOT NULL)')
 conn.execute(
-    'CREATE TABLE IF NOT EXISTS passwordreset (username TEXT  NOT NULL, token TEXT NOT NULL, salt NOT NULL, timestamp BIGINT  NOT NULL)')
+    'CREATE TABLE IF NOT EXISTS passwordreset (username TEXT  NOT NULL, token TEXT NOT NULL, salt NOT NULL, timestamp BIGINT  NOT NULL, used SMALLINT)')
 
 
 def is_logged_in():
@@ -152,27 +155,28 @@ def settings():
 def change_password():
     if (is_logged_in()):
         try:
-            set_password(current_user.get_username(),
-                         request.form.get("oldpass"), request.form.get("newpass"))
+            set_password_with_auth(current_user.get_username(),
+                                   request.form.get("oldpass"), request.form.get("newpass"))
             flash("Settings updated", "success")
         except LoginException:
             flash("Old Password Incorrect", "danger")
         except AccountModificationException:
             flash("Password not strong enough", "danger")
+        except Exception as e:
+            print(str(e))
         finally:
             return redirect("/settings")
 
     elif (request.form.get('username') and request.form.get('token')):
         try:
             if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
-                set_password_without_old_password(request.form.get('username'),
-                                                  request.form.get('password'))
+                expire_password_reset_token(request.form.get('username'))
+                set_password(request.form.get('username'),
+                             request.form.get('password'))
             flash("Password updated", "success")
             return redirect("/login")
         except AccountModificationException:
             flash("Password not strong enough", "danger")
-        finally:
-            print(request.referrer)
             return redirect(request.referrer)
 
 
@@ -233,6 +237,8 @@ def password_reset():
     conn.close()
     if (user != None):
         user = User(dict(user))
-        send_password_reset_email(token, user.get_email())
-        return user.get_email()
-    return "user does not exist"
+        send_password_reset_email(
+            token, user.get_email(), username, request.url_root)
+    # claims that it sent the email even if the user doesn't exust
+    flash("Email sent", "success")
+    return redirect(request.referrer)

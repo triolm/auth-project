@@ -5,11 +5,12 @@
         <form action="./settings" class="needs-validation" method="post" novalidate>
             <h5 class="card-title">Profile</h5>
             <div class="mt-3">
-                <label for="customRange1" class="form-label">Avatar Color</label>
+                <label for="color" class="form-label">Avatar Color</label>
                 <span class="avatar me-2" id="avatar"
                     style="background-color:hsl({{current_user.get_color()}},50%,50%)">{{current_user.get_name()[0].upper()}}</span>
                 <strong>
-                    <input type="range" class="form-range" name="color" id="color" step="1" min="0" max="360">
+                    <input type="range" class="form-range" name="color" id="color" step="1" min="0" max="360"
+                        value="{{current_user.get_color()}}">
             </div>
             <label for="name" class="form-label">Name</label>
             <input type="text" class="form-control" name="name" id="name" placeholder="{{current_user.get_name()}}"

@@ -41,7 +41,11 @@
                         {{current_user.get_username()}}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Profile</a></li>
+                        <!-- <l i><a class="dropdown-item" href="#">Profile</a></li> -->
+                        <li><a class="dropdown-item" href="/">Home</a></li>
+                        {% if current_user.is_admin() %}
+                        <li><a class="dropdown-item" href="/manageusers">Manage Users</a></li>
+                        {%endif%}
                         <li><a class="dropdown-item" href="/settings">Settings</a></li>
                         <li>
                             <hr class="dropdown-divider">
