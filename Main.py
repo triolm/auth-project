@@ -9,14 +9,15 @@ from Errors import AccountCreationException, AccountModificationException, Login
 from User import User, lock_expired
 # from bson import ObjectId
 
+# cookie manager
 login_manager = LoginManager()
 
 app = Flask(__name__)
 login_manager.init_app(app)
 
-app.config['SECRET_KEY'] = "THIS IS A BAD SECRET KEY"
+app.config['SECRET_KEY'] = "THIS IS PROBABLY NOT A VERY GOOD SECRET KEY, BUT I THINK ITS OKAY FOR THE PURPOSES OF THIS PROJECT."
 
-
+# create SQL tables for users, passwordresets, and failedlogins if they don't already exist
 conn = sqlite3.connect('database.db')
 conn.execute(
     'CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, salt TEXT  NOT NULL, isAdmin SMALL INT, email TEXT NOT NULL, locked SMALLINT, locktime BIGINT,color INT)')
@@ -26,6 +27,7 @@ conn.execute(
     'CREATE TABLE IF NOT EXISTS passwordreset (username TEXT  NOT NULL, token TEXT NOT NULL, salt NOT NULL, timestamp BIGINT  NOT NULL, used SMALLINT)')
 
 
+# make sure user has a session that is a valid unlocked user
 def is_logged_in():
     if (current_user.is_authenticated):
         if (current_user.locked()):
@@ -34,6 +36,8 @@ def is_logged_in():
             flash("Account locked", "danger")
             return False
     return current_user.is_authenticated
+
+# load user, happens on every page load fir a logged in session
 
 
 @login_manager.user_loader
@@ -45,6 +49,7 @@ def load_user(username):
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     if (user != None):
+        # cast SQL cursor to obj
         user = dict(user)
         return User(user)
     return None
@@ -67,6 +72,7 @@ def login_page():
 @app.route('/login', methods=['POST'])
 def login():
     try:
+        # login will throw error if credentials are invalid
         user = get_unlocked_user(request.form.get("username"),
                                  request.form.get("password"))
         login_user(user)
@@ -77,9 +83,20 @@ def login():
         return redirect("./login")
 
 
+@app.route('/signup')
+def signup_page():
+    if (current_user.is_authenticated):
+        return redirect("./")
+    return render_template("./signup.html", page="signup")
+
+
 @app.route('/signup', methods=["POST"])
 def signup():
     try:
+        if (request.form.get('password') != request.form.get('confirmpassword')):
+            raise AccountCreationException(
+                "Passwords do not match")
+        # craete new user w/ form data
         user = new_user(request.form.get("username"),
                         request.form.get("password"),
                         request.form.get("name"),
@@ -93,27 +110,19 @@ def signup():
         return redirect("./signup")
 
 
-@app.route('/signup')
-def signup_page():
-    if (current_user.is_authenticated):
-        return redirect("./")
-    return render_template("./signup.html", page="signup")
-
-
 @app.route("/lock", methods=["POST"])
 def lock():
-    try:
-        if (is_logged_in() and current_user.is_admin()):
-            lock_user(request.form.get("username"))
-            flash("Account locked", "success")
-            return redirect("/manageusers")
-    except:
-        return redirect("./")
+    # allow user to lock other accounts only if they are an admin
+    if (is_logged_in() and current_user.is_admin()):
+        lock_user(request.form.get("username"))
+        flash("Account locked", "success")
+        return redirect("/manageusers")
     return redirect("./")
 
 
 @app.route("/unlock", methods=["POST"])
 def unlock():
+    # allow user to unlock other accounts only if they are an admin
     if (is_logged_in() and current_user.is_admin()):
         unlock_user(request.form.get("username"))
         flash("Account unlocked", "success")
@@ -123,6 +132,7 @@ def unlock():
 
 @app.route("/promote", methods=["POST"])
 def promote():
+    # allow admins to promote users
     if (is_logged_in() and current_user.is_admin()):
         make_admin(request.form.get("username"))
         flash("Admin privledges added", "success")
@@ -142,6 +152,7 @@ def demote():
 @app.route("/settings", methods=["POST"])
 def settings():
     if (is_logged_in()):
+        # update color and name of user
         if (request.form.get("color")):
             set_color(current_user.get_username(), request.form.get("color"))
         if (request.form.get("name")):
@@ -153,6 +164,7 @@ def settings():
 
 @app.route("/changepassword", methods=["POST"])
 def change_password():
+    # if user is changing password while logged in
     if (is_logged_in()):
         try:
             set_password_with_auth(current_user.get_username(),
@@ -167,16 +179,21 @@ def change_password():
         finally:
             return redirect("/settings")
 
+    # if user is changing password from reset link
     elif (request.form.get('username') and request.form.get('token')):
         try:
             if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
                 expire_password_reset_token(request.form.get('username'))
+                # password confrimation
+                if (request.form.get('password') != request.form.get('confirmpassword')):
+                    raise AccountModificationException(
+                        "Passwords do not match")
                 set_password(request.form.get('username'),
                              request.form.get('password'))
             flash("Password updated", "success")
             return redirect("/login")
-        except AccountModificationException:
-            flash("Password not strong enough", "danger")
+        except AccountModificationException as e:
+            flash(str(e), "danger")
             return redirect(request.referrer)
 
 

@@ -1,9 +1,14 @@
 {% extends "boilerplate.html" %}
 {% block content %}
 {% if current_user.is_authenticated %}
-<div class="mx-3">
-    <p>Hi, {{current_user.get_name()}}!</p>
-    <p>You are {{"" if current_user.is_admin() else "not"}} an admin.</p>
+
+<div class="blankslate">
+    <h2 class="blankslate-heading">Hello, {{current_user.get_name()}}!</h2>
+    <p>Welcome to Auth App!
+        {%if current_user.is_admin()%}
+        You have admin privledges.
+        {%endif%}
+    </p>
 </div>
 
 {% endif %}

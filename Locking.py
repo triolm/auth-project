@@ -20,6 +20,7 @@ def unlock_user(username):
 
 
 def log_failed_login(username):
+    print("Eee")
     conn = sqlite3.connect('database.db')
     conn.execute(
         'INSERT INTO failedlogins (username,timestamp) VALUES (?,?)', (username, time.time()))
@@ -32,5 +33,6 @@ def fails_over_thresh(username):
     fails = conn.execute(
         'SELECT timestamp FROM failedlogins WHERE username = ? AND timestamp >= ?', (username, time.time() - 60*60))
     nfails = len(fails.fetchall())
+    print([dict(row) for row in fails.fetchall()])
     conn.close()
     return nfails >= 3
