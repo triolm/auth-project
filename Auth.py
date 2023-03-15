@@ -13,7 +13,7 @@ import random
 
 
 def new_user(username, password, name, email, isAdmin=False):
-    username = username.lower().strip()
+    username = sanitise_username(username)
     name = name.strip()
 
     # if (username == password.lower()):
@@ -46,6 +46,7 @@ def new_user(username, password, name, email, isAdmin=False):
 
 
 def check_password(username, password):
+    username = sanitise_username(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     user = conn.execute(
@@ -66,7 +67,7 @@ def check_password(username, password):
 
 
 def get_user(username, password):
-    username = username.lower()
+    username = sanitise_username(username)
 
     user = check_password(username, password)
     if (user != None):

@@ -63,3 +63,7 @@ def set_color(username, color):
     conn.commit()
     conn.close()
     return color
+
+
+def sanitise_username(username):
+    return username.lower().strip()

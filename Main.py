@@ -228,8 +228,8 @@ def password_reset_page():
 
 @app.route("/resetpassword", methods=["POST"])
 def password_reset():
-    username = request.form.get("username").strip().lower()
-    token = create_password_reset_token(request.form.get("username"))
+    username = sanitise_username(request.form.get("username"))
+    token = create_password_reset_token(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     user = conn.execute(

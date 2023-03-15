@@ -1,7 +1,7 @@
 
 import os
 import time
-from AccountDetails import hashPassword
+from AccountDetails import hashPassword, sanitise_username
 import secrets
 import sqlite3
 
@@ -13,7 +13,7 @@ load_dotenv()
 
 
 def create_password_reset_token(username):
-    username = username.lower().strip()
+    username = sanitise_username(username)
     # check that user exists
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
@@ -33,7 +33,7 @@ def create_password_reset_token(username):
 
 
 def verify_password_reset_token(token, username):
-    username = username.strip().lower()
+    username = sanitise_username(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     resettoken = conn.execute(
