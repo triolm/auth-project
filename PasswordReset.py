@@ -21,10 +21,13 @@ def create_password_reset_token(username):
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     if (user == None):
         return None
+    # invalidate all previous tokens
     expire_password_reset_token(username)
     token = secrets.token_urlsafe(16)
     salt = secrets.token_hex(16)
     hash = hashPassword(token, salt)
+
+    # put token in db
     conn.execute(
         'INSERT INTO passwordreset (username,token,salt,timestamp,used) VALUES (?,?,?,?,0)', (username, hash, salt, time.time()))
     conn.commit()
@@ -33,6 +36,7 @@ def create_password_reset_token(username):
 
 
 def verify_password_reset_token(token, username):
+    # check if username and password reset token match
     username = sanitise_username(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
@@ -44,7 +48,6 @@ def verify_password_reset_token(token, username):
     if (bool(resettoken.get("used")) or time.time() - resettoken.get("timestamp") > 60*60):
         return False
     conn.close()
-    print(token)
     return resettoken.get("token") == hashPassword(token, resettoken.get("salt"))
 
 
@@ -61,12 +64,9 @@ def send_password_reset_email(token, email, username, url):
         from_email='triolm24+authapp@polyprep.org',
         to_emails=str(email),
         subject='Password Reset Link',
-        html_content="To reset your password please visit the following URL: %sresetpassword?token=%s&username=%s" % (url, token, username))
+        html_content="To reset your Auth App password please visit the following URL: %sresetpassword?token=%s&username=%s" % (url, token, username))
     try:
         sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
         response = sg.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
     except Exception as e:
-        print(e.message)
+        print(str(e))

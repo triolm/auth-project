@@ -42,7 +42,6 @@ def is_logged_in():
 
 @login_manager.user_loader
 def load_user(username):
-    print(username)
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     user = conn.execute(
@@ -83,6 +82,14 @@ def login():
         return redirect("./login")
 
 
+@ app.route('/logout')
+def logout():
+    if (current_user.is_authenticated):
+        flash("logged out", "success")
+        logout_user()
+    return redirect("./")
+
+
 @app.route('/signup')
 def signup_page():
     if (current_user.is_authenticated):
@@ -102,6 +109,7 @@ def signup():
                         request.form.get("name"),
                         request.form.get("email"),
                         request.form.get("isAdmin"))
+        # login user
         login_user(user)
         flash("Account created", "success")
         return redirect("./")
@@ -142,6 +150,7 @@ def promote():
 
 @app.route("/demote", methods=["POST"])
 def demote():
+    # admins can demote other admins
     if (is_logged_in() and current_user.is_admin()):
         unmake_admin(request.form.get("username"))
         flash("Admin privledges removed", "success")
@@ -167,6 +176,11 @@ def change_password():
     # if user is changing password while logged in
     if (is_logged_in()):
         try:
+            # make sure user has confirmed password correctly
+            if (request.form.get('newpass') != request.form.get('confirmnewpass')):
+                raise AccountModificationException(
+                    "Passwords do not match")
+            # checks if user inputted correct old password
             set_password_with_auth(current_user.get_username(),
                                    request.form.get("oldpass"), request.form.get("newpass"))
             flash("Settings updated", "success")
@@ -212,11 +226,14 @@ def manage_users():
         conn.row_factory = sqlite3.Row
         users = conn.execute(
             "SELECT * FROM users")
+        # cast cursor of users to dictionary readable by jinja
         users = [dict(row) for row in users.fetchall()]
         conn.close()
 
         for user in users:
             user.update({"locked": bool(user.get("locked"))})
+            # make sure users display the correct locked status
+            # but this doesn't update the actual DB
             if (user.get("locked") == True and lock_expired(user.get("locktime"))):
                 unlock_user(user.get("username"))
                 user.update({"locked": False})
@@ -227,16 +244,10 @@ def manage_users():
     return redirect("/login")
 
 
-@ app.route('/logout')
-def logout():
-    flash("logged out", "success")
-    logout_user()
-    return redirect("./")
-
-
 @app.route("/resetpassword")
 def password_reset_page():
     if (request.args.get('token')):
+        # make sure password reset link applies to the given user
         if ((verify_password_reset_token(request.args.get('token'),
                                          request.args.get('username')))):
             return render_template("./changepassword.html", username=request.args.get('username'), token=request.args.get('token'))
@@ -246,7 +257,10 @@ def password_reset_page():
 @app.route("/resetpassword", methods=["POST"])
 def password_reset():
     username = sanitise_username(request.form.get("username"))
+    # create token
     token = create_password_reset_token(username)
+
+    # get user object and email the user if the username is valid
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     user = conn.execute(

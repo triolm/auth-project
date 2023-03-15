@@ -6,14 +6,28 @@ import sqlite3
 from Errors import *
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
+# I did not write this regex
+#  https://www.w3resource.com/javascript/form/email-validation.php
+email_requirements = "^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$"
+
+
+# mainly setters and validation functions for user database
 
 def hashPassword(password, salt):
     salty = password + salt
     return hashlib.sha256(salty.encode()).hexdigest()
 
 
+def sanitise_username(username):
+    return username.lower().strip()
+
+
 def valid_password(password):
     return re.search(password_requirements, password) != None
+
+
+def valid_email(email):
+    return re.search(email_requirements, email) != None
 
 
 def make_admin(username):
@@ -25,6 +39,7 @@ def make_admin(username):
 
 
 def unmake_admin(username):
+    # probably a bad name for this function
     conn = sqlite3.connect('database.db')
     conn.execute(
         'UPDATE users SET isAdmin = 0 WHERE username = ?', (username,))
@@ -44,6 +59,7 @@ def set_password(username, password):
     username = username.lower().strip()
     if (not valid_password(password)):
         raise AccountModificationException("Password not strong enough")
+    # hash password
     salt = secrets.token_hex(16)
     hashed = hashPassword(password, salt)
     conn = sqlite3.connect('database.db')
@@ -63,7 +79,3 @@ def set_color(username, color):
     conn.commit()
     conn.close()
     return color
-
-
-def sanitise_username(username):
-    return username.lower().strip()
