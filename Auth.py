@@ -65,24 +65,11 @@ def new_user(username, password, name, email, isAdmin=False):
     return User(user)
 
 
-def check_password(username, password):
+def get_user(username, password):
     username = sanitise_username(username)
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    userObj = None
-    # get the details of given username
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    conn.close()
-
+    user = check_password(username, password)
     if (user != None):
-        user = dict(user)
-        userObj = User(user)
-        # check if hashed inputted password is equal to the hashed password in the db
-        if (user.get("password") == hashPassword(password, user.get("salt"))):
-            if (userObj.locked() != bool(user.get("locked"))):
-                set_locked_status(userObj.get_username(), userObj.locked())
-            return userObj
+        return user
 
     log_failed_login(username)
 
@@ -92,14 +79,6 @@ def check_password(username, password):
             send_locked_email(username, request.url_root)
         raise LoginException("Too many failed attempts; Account locked")
     raise LoginException("Username and password do not match")
-
-
-def get_user(username, password):
-    # i'm aware this method does not do much but it works
-    username = sanitise_username(username)
-    user = check_password(username, password)
-    if (user != None):
-        return user
 
 
 def get_unlocked_user(username, password):

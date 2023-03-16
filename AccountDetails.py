@@ -4,6 +4,8 @@ import re
 import secrets
 import sqlite3
 from Errors import *
+from Locking import set_locked_status
+from User import User
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
 
@@ -59,7 +61,13 @@ def set_password(username, password):
     # hash password
     salt = secrets.token_hex(16)
     hashed = hashPassword(password, salt)
+
+    if (check_password(username, password) != None):
+        raise AccountModificationException(
+            "New password cannot be old password")
+
     conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
     conn.execute(
         'UPDATE users SET salt = ?, password = ? WHERE username = ?', (salt, hashed, username))
     conn.commit()
@@ -76,3 +84,23 @@ def set_color(username, color):
     conn.commit()
     conn.close()
     return color
+
+
+def check_password(username, password):
+    username = sanitise_username(username)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    userObj = None
+    # get the details of given username
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+
+    if (user != None):
+        user = dict(user)
+        userObj = User(user)
+        # check if hashed inputted password is equal to the hashed password in the db
+        if (user.get("password") == hashPassword(password, user.get("salt"))):
+            if (userObj.locked() != bool(user.get("locked"))):
+                set_locked_status(userObj.get_username(), userObj.locked())
+            return userObj

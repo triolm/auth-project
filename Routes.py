@@ -72,8 +72,8 @@ def post_change_passwd_logged_in():
         flash("Settings updated", "success")
     except LoginException:
         flash("Old Password Incorrect", "danger")
-    except AccountModificationException:
-        flash("Password not strong enough", "danger")
+    except AccountModificationException as e:
+        flash(str(e), "danger")
     except Exception as e:
         print(str(e))
     finally:
@@ -124,8 +124,15 @@ def failed_logins_page():
 def manage_users_page():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
-    users = conn.execute(
-        "SELECT * FROM users")
+    user = None
+    search = request.args.get(
+        'search') != None and request.args.get('search') != ""
+    if (search):
+        users = conn.execute("SELECT * FROM users WHERE username LIKE ? OR name LIKE ?",
+                             ("%" + request.args.get('search') + "%", "%" + request.args.get('search') + "%"))
+    else:
+        users = conn.execute("SELECT * FROM users")
+
     # cast cursor of users to dictionary readable by jinja
     users = [dict(row) for row in users.fetchall()]
     conn.close()
@@ -138,4 +145,4 @@ def manage_users_page():
             unlock_user(user.get("username"))
             user.update({"locked": False})
 
-    return render_template("./manageusers.html", users=users, page="manageusers")
+    return render_template("./manageusers.html", users=users, page="manageusers", search=search)
