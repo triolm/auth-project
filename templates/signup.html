@@ -23,10 +23,13 @@
                 <li>1 Number</li>
                 <li>1 Special Character</li>
             </ul>" required>
-
-        <label for="confirmpassword" class="form-label">Confirm Password</label>
-        <input type="password" class="form-control" name="confirmpassword" id="confirmpassword" required>
-
+        <span>
+            <label for="confirmpassword" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" name="confirmpassword" id="confirmpassword" required>
+            <div class="invalid-feedback">
+                Passwords do not match
+            </div>
+        </span>
 
         <!-- :( -->
         <!-- <div class="mt-3">

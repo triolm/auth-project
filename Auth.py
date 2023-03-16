@@ -1,19 +1,18 @@
 import secrets
 import sqlite3
+
+from flask import request
 from AccountDetails import *
 from Errors import *
 from Locking import *
+from PasswordReset import send_locked_email
 from User import User
 import random
 
 # what if an account is unlocked, should it require three more attempts to lock
 # users should have ids
 # routes should be more restful
-# make sure conn is always closed and not committed when db wasn't edited
 # should a locked account be able to reset their password?
-# use the is_active thing
-# can password reset allow an insecure password
-# admins should be able to see all logins
 # the first block is called the genesis block
 
 
@@ -32,6 +31,9 @@ def new_user(username, password, name, email, isAdmin=False):
     # make sure name was inputted
     if (name.strip() == ""):
         raise AccountCreationException("Please enter a name")
+
+    if (" " in username):
+        raise AccountCreationException("Username may not contain spaces")
 
     # make sure username is valid
     if (not username or username == ""):
@@ -77,15 +79,17 @@ def check_password(username, password):
         user = dict(user)
         userObj = User(user)
         # check if hashed inputted password is equal to the hashed password in the db
-        if (user.get("password") == hashPassword(password, user["salt"])):
+        if (user.get("password") == hashPassword(password, user.get("salt"))):
             if (userObj.locked() != bool(user.get("locked"))):
-                set_locked_status(user.get(username), userObj.locked())
+                set_locked_status(userObj.get_username(), userObj.locked())
             return userObj
 
     log_failed_login(username)
 
     if (fails_over_thresh(username)):
         lock_user(username)
+        if (user != None and not bool(userObj.locked())):
+            send_locked_email(username, request.url_root)
         raise LoginException("Too many failed attempts; Account locked")
     raise LoginException("Username and password do not match")
 
