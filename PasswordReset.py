@@ -59,6 +59,29 @@ def expire_password_reset_token(username):
     conn.close()
 
 
+def send_locked_email(username, url):
+    conn = sqlite3.connect('database.db')
+    user = conn.execute(
+        'SELECT * from users WHERE username = ? ', (username,)).fetchone()
+    if (user == None):
+        return
+    user = dict(user)
+    message = Mail(
+        from_email='triolm24+authapp@polyprep.org',
+        to_emails=str(user.get("email")),
+        subject='Account locked',
+        # this email totally looks like a scam
+        html_content='''Hello, %s! <br> Your Auth App account has been locked due to failed login attempts. 
+        You may unlock your account by resetting your password <a href="%s/resetpassword">here</a>.''' % (user.get("username")))
+    try:
+        sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
+        response = sg.send(message)
+    except Exception as e:
+        print(str(e))
+    conn.commit()
+    conn.close()
+
+
 def send_password_reset_email(token, email, username, url):
     message = Mail(
         from_email='triolm24+authapp@polyprep.org',

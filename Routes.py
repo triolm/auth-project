@@ -51,11 +51,12 @@ def post_settings():
 def post_change_passwd_not_logged_in():
     # this is a terrible function name
     try:
-        if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
-            expire_password_reset_token(request.form.get('username'))
-            # password confrimation
-            set_password(request.form.get('username'),
+        username = sanitise_username(request.form.get('username'))
+        if (verify_password_reset_token(request.form.get('token'), username)):
+            set_password(username,
                          request.form.get('password'))
+            expire_password_reset_token(username)
+            unlock_user(username)
         flash("Password updated", "success")
         return redirect("/login")
     except AccountModificationException as e:

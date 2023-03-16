@@ -1,8 +1,11 @@
 import secrets
 import sqlite3
+
+from flask import request
 from AccountDetails import *
 from Errors import *
 from Locking import *
+from PasswordReset import send_locked_email
 from User import User
 import random
 
@@ -76,15 +79,17 @@ def check_password(username, password):
         user = dict(user)
         userObj = User(user)
         # check if hashed inputted password is equal to the hashed password in the db
-        if (user.get("password") == hashPassword(password, user["salt"])):
+        if (user.get("password") == hashPassword(password, user.get("salt"))):
             if (userObj.locked() != bool(user.get("locked"))):
-                set_locked_status(user.get(username), userObj.locked())
+                set_locked_status(userObj.get_username(), userObj.locked())
             return userObj
 
     log_failed_login(username)
 
     if (fails_over_thresh(username)):
         lock_user(username)
+        if (user != None and not bool(userObj.locked())):
+            send_locked_email(username, request.url_root)
         raise LoginException("Too many failed attempts; Account locked")
     raise LoginException("Username and password do not match")
 
