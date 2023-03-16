@@ -9,11 +9,7 @@ import random
 # what if an account is unlocked, should it require three more attempts to lock
 # users should have ids
 # routes should be more restful
-# make sure conn is always closed and not committed when db wasn't edited
 # should a locked account be able to reset their password?
-# use the is_active thing
-# can password reset allow an insecure password
-# admins should be able to see all logins
 # the first block is called the genesis block
 
 

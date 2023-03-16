@@ -100,9 +100,6 @@ def signup_page():
 @app.route('/signup', methods=["POST"])
 def signup():
     try:
-        if (request.form.get('password') != request.form.get('confirmpassword')):
-            raise AccountCreationException(
-                "Passwords do not match")
         # craete new user w/ form data
         user = new_user(request.form.get("username"),
                         request.form.get("password"),
@@ -176,10 +173,6 @@ def change_password():
     # if user is changing password while logged in
     if (is_logged_in()):
         try:
-            # make sure user has confirmed password correctly
-            if (request.form.get('newpass') != request.form.get('confirmnewpass')):
-                raise AccountModificationException(
-                    "Passwords do not match")
             # checks if user inputted correct old password
             set_password_with_auth(current_user.get_username(),
                                    request.form.get("oldpass"), request.form.get("newpass"))
@@ -199,9 +192,6 @@ def change_password():
             if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
                 expire_password_reset_token(request.form.get('username'))
                 # password confrimation
-                if (request.form.get('password') != request.form.get('confirmpassword')):
-                    raise AccountModificationException(
-                        "Passwords do not match")
                 set_password(request.form.get('username'),
                              request.form.get('password'))
             flash("Password updated", "success")
