@@ -29,6 +29,9 @@ def new_user(username, password, name, email, isAdmin=False):
     if (name.strip() == ""):
         raise AccountCreationException("Please enter a name")
 
+    if (" " in username):
+        raise AccountCreationException("Username may not contain spaces")
+
     # make sure username is valid
     if (not username or username == ""):
         raise AccountCreationException("Please enter a username")

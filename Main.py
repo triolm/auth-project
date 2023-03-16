@@ -7,6 +7,7 @@ from Locking import *
 from PasswordReset import *
 from Errors import AccountCreationException, AccountModificationException, LoginException
 from User import User, lock_expired
+from Routes import *
 # from bson import ObjectId
 
 # cookie manager
@@ -61,58 +62,30 @@ def index():
     return render_template("./home.html", page="home")
 
 
-@app.route('/login')
-def login_page():
+@app.route('/login', methods=['GET', 'POST'])
+def login():
     if (is_logged_in()):
         return redirect("./")
+    if (request.method == 'POST'):
+        return post_login()
     return render_template("./login.html", page="login")
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        # login will throw error if credentials are invalid
-        user = get_unlocked_user(request.form.get("username"),
-                                 request.form.get("password"))
-        login_user(user)
-        flash("logged in", "success")
-        return redirect("./")
-    except LoginException as e:
-        flash(str(e), "danger")
-        return redirect("./login")
 
 
 @ app.route('/logout')
 def logout():
-    if (current_user.is_authenticated):
+    if (is_logged_in()):
         flash("logged out", "success")
         logout_user()
     return redirect("./")
 
 
-@app.route('/signup')
-def signup_page():
-    if (current_user.is_authenticated):
-        return redirect("./")
-    return render_template("./signup.html", page="signup")
-
-
-@app.route('/signup', methods=["POST"])
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    try:
-        # craete new user w/ form data
-        user = new_user(request.form.get("username"),
-                        request.form.get("password"),
-                        request.form.get("name"),
-                        request.form.get("email"),
-                        request.form.get("isAdmin"))
-        # login user
-        login_user(user)
-        flash("Account created", "success")
+    if (is_logged_in()):
         return redirect("./")
-    except AccountCreationException as e:
-        flash(str(e), "danger")
-        return redirect("./signup")
+    if (request.method == 'POST'):
+        return post_signup()
+    return render_template("./signup.html", page="signup")
 
 
 @app.route("/lock", methods=["POST"])
@@ -155,16 +128,14 @@ def demote():
     return redirect("./")
 
 
-@app.route("/settings", methods=["POST"])
+@app.route("/settings", methods=["GET", "POST"])
 def settings():
+    if (request.method == "POST"):
+        if (is_logged_in()):
+            return post_settings()
+        return redirect("./")
     if (is_logged_in()):
-        # update color and name of user
-        if (request.form.get("color")):
-            set_color(current_user.get_username(), request.form.get("color"))
-        if (request.form.get("name")):
-            set_name(current_user.get_username(), request.form.get("name"))
-        flash("Settings updated", "success")
-        return redirect("/settings")
+        return render_template("./settings.html")
     return redirect("./")
 
 
@@ -172,63 +143,17 @@ def settings():
 def change_password():
     # if user is changing password while logged in
     if (is_logged_in()):
-        try:
-            # checks if user inputted correct old password
-            set_password_with_auth(current_user.get_username(),
-                                   request.form.get("oldpass"), request.form.get("newpass"))
-            flash("Settings updated", "success")
-        except LoginException:
-            flash("Old Password Incorrect", "danger")
-        except AccountModificationException:
-            flash("Password not strong enough", "danger")
-        except Exception as e:
-            print(str(e))
-        finally:
-            return redirect("/settings")
+        return post_change_passwd_logged_in()
 
     # if user is changing password from reset link
     elif (request.form.get('username') and request.form.get('token')):
-        try:
-            if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
-                expire_password_reset_token(request.form.get('username'))
-                # password confrimation
-                set_password(request.form.get('username'),
-                             request.form.get('password'))
-            flash("Password updated", "success")
-            return redirect("/login")
-        except AccountModificationException as e:
-            flash(str(e), "danger")
-            return redirect(request.referrer)
-
-
-@app.route("/settings")
-def render_settings():
-    if (is_logged_in()):
-        return render_template("./settings.html")
-    return redirect("./")
+        return post_change_passwd_not_logged_in()
 
 
 @app.route("/manageusers")
 def manage_users():
     if (is_logged_in() and current_user.is_admin()):
-
-        conn = sqlite3.connect('database.db')
-        conn.row_factory = sqlite3.Row
-        users = conn.execute(
-            "SELECT * FROM users")
-        # cast cursor of users to dictionary readable by jinja
-        users = [dict(row) for row in users.fetchall()]
-        conn.close()
-
-        for user in users:
-            user.update({"locked": bool(user.get("locked"))})
-            # make sure users display the correct locked status
-            # but this doesn't update the actual DB
-            if (user.get("locked") == True and lock_expired(user.get("locktime"))):
-                unlock_user(user.get("username"))
-                user.update({"locked": False})
-
-        return render_template("./manageusers.html", users=users, page="manageusers")
+        return manage_users_page()
     if is_logged_in():
         return redirect("/")
     return redirect("/login")
@@ -237,47 +162,14 @@ def manage_users():
 @app.route("/failedlogins")
 def failed_logins():
     if (is_logged_in() and current_user.is_admin()):
-
-        conn = sqlite3.connect('database.db')
-        conn.row_factory = sqlite3.Row
-        fails = conn.execute(
-            "SELECT * FROM failedlogins")
-        # cast cursor of fails to dictionary readable by jinja
-        fails = [dict(row) for row in fails.fetchall()]
-        conn.close()
-
-        return render_template("./failedlogins.html", fails=fails, page="failedlogins")
+        return failed_logins_page()
     if is_logged_in():
         return redirect("/")
     return redirect("/login")
 
 
-@app.route("/resetpassword")
-def password_reset_page():
-    if (request.args.get('token')):
-        # make sure password reset link applies to the given user
-        if ((verify_password_reset_token(request.args.get('token'),
-                                         request.args.get('username')))):
-            return render_template("./changepassword.html", username=request.args.get('username'), token=request.args.get('token'))
-    return render_template("./passwordreset.html")
-
-
-@app.route("/resetpassword", methods=["POST"])
+@app.route("/resetpassword", methods=["GET", "POST"])
 def password_reset():
-    username = sanitise_username(request.form.get("username"))
-    # create token
-    token = create_password_reset_token(username)
-
-    # get user object and email the user if the username is valid
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    conn.close()
-    if (user != None):
-        user = User(dict(user))
-        send_password_reset_email(
-            token, user.get_email(), username, request.url_root)
-    # claims that it sent the email even if the user doesn't exust
-    flash("Email sent", "success")
-    return redirect(request.referrer)
+    if (request.method == "POST"):
+        return post_passwd_reset()
+    return passwd_reset_page()
