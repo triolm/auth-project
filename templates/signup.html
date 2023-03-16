@@ -14,7 +14,15 @@
         <input type="email" class="form-control" name="email" id="email" required>
 
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" name="password" id="password" required>
+        <input type="password" class="form-control" name="password" id="password" data-bs-toggle="tooltip"
+            data-bs-html="true" data-bs-placement="left" data-bs-title="Password Must Include: 
+            <ul class='pb-0 mb-1'>
+                <li>10 Characters</li>
+                <li>1 Capital letter</li>
+                <li>1 Lowercase letter</li>
+                <li>1 Number</li>
+                <li>1 Special Character</li>
+            </ul>" required>
 
         <label for="confirmpassword" class="form-label">Confirm Password</label>
         <input type="password" class="form-control" name="confirmpassword" id="confirmpassword" required>
@@ -33,7 +41,7 @@
                 Are you an Admin?
             </label>
             <div class="col-auto mt-3">
-                <button type="submit" class="btn btn-primary">Sign Up</button>
+                <button type="submit" id="signup" class="btn btn-primary" disabled>Sign Up</button>
 
             </div>
             <div class="mt-2 d-flex flex-column align-items-start">
@@ -42,13 +50,32 @@
     </form>
 
 </div>
-<script>
-    let phonetext = document.querySelector("#phone");
-    let phonen = document.querySelector("#phonenumber")
-    phonen.addEventListener("input", () => {
-        let val = phonen.value
-        phonetext.textContent = "(" + val.substring(0, 3) + ")-" + val.substring(3, 6) + "-" + val.substring(6);
-    })
+<!-- https://stackoverflow.com/questions/64113404/bootstrap-5-referenceerror-bootstrap-is-not-defined -->
+<script type="module">
+    // let phonetext = document.querySelector("#phone");
+    // let phonen = document.querySelector("#phonenumber")
+    // phonen.addEventListener("input", () => {
+    //     let val = phonen.value
+    //     phonetext.textContent = "(" + val.substring(0, 3) + ")-" + val.substring(3, 6) + "-" + val.substring(6);
+    // })
+
+    //https://getbootstrap.com/docs/5.2/components/tooltips/
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+    const pass1 = document.querySelector("#password")
+    const pass2 = document.querySelector("#confirmpassword")
+    const submit = document.querySelector("#signup")
+
+    const passwordEquality = () => {
+        if (pass1.value === pass2.value) {
+            submit.disabled = false;
+        } else {
+            submit.disabled = true;
+        }
+    }
+    pass1.addEventListener("input", passwordEquality)
+    pass2.addEventListener("input", passwordEquality)
 </script>
 {% include "formvalidate.html" %}
 {% endblock %}

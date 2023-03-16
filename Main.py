@@ -197,13 +197,15 @@ def change_password():
     elif (request.form.get('username') and request.form.get('token')):
         try:
             if (verify_password_reset_token(request.form.get('token'), request.form.get('username'))):
-                expire_password_reset_token(request.form.get('username'))
                 # password confrimation
                 if (request.form.get('password') != request.form.get('confirmpassword')):
                     raise AccountModificationException(
                         "Passwords do not match")
+
                 set_password(request.form.get('username'),
                              request.form.get('password'))
+
+                expire_password_reset_token(request.form.get('username'))
             flash("Password updated", "success")
             return redirect("/login")
         except AccountModificationException as e:
@@ -224,8 +226,16 @@ def manage_users():
 
         conn = sqlite3.connect('database.db')
         conn.row_factory = sqlite3.Row
-        users = conn.execute(
-            "SELECT * FROM users")
+        user = None
+        search = request.args.get(
+            'search') != None and request.args.get('search') != ""
+        if (search):
+            users = conn.execute(
+                "SELECT * FROM users WHERE username LIKE ? OR name LIKE ?", ("%" + request.args.get('search') + "%", "%" + request.args.get('search') + "%"))
+        else:
+            users = conn.execute(
+                "SELECT * FROM users")
+
         # cast cursor of users to dictionary readable by jinja
         users = [dict(row) for row in users.fetchall()]
         conn.close()
@@ -238,7 +248,7 @@ def manage_users():
                 unlock_user(user.get("username"))
                 user.update({"locked": False})
 
-        return render_template("./manageusers.html", users=users, page="manageusers")
+        return render_template("./manageusers.html", users=users, page="manageusers", search=search)
     if is_logged_in():
         return redirect("/")
     return redirect("/login")
@@ -251,7 +261,7 @@ def failed_logins():
         conn = sqlite3.connect('database.db')
         conn.row_factory = sqlite3.Row
         fails = conn.execute(
-            "SELECT * FROM failedlogins")
+            "SELECT * FROM failedlogins ORDER BY timestamp DESC")
         # cast cursor of fails to dictionary readable by jinja
         fails = [dict(row) for row in fails.fetchall()]
         conn.close()

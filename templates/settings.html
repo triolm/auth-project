@@ -29,23 +29,49 @@
             <input type="password" class="form-control" name="oldpass" id="oldpass" required>
 
             <label for="newpass" class="form-label">New Password</label>
-            <input type="password" class="form-control" name="newpass" id="newpass" required>
+            <input type="password" class="form-control" name="newpass" id="newpass" data-bs-toggle="tooltip"
+                data-bs-html="true" data-bs-placement="left" data-bs-title="Password Must Include: 
+            <ul class='pb-0 mb-1'>
+                <li>10 Characters</li>
+                <li>1 Capital letter</li>
+                <li>1 Lowercase letter</li>
+                <li>1 Number</li>
+                <li>1 Special Character</li>
+            </ul>" required>
 
-            <label for="confirmnewpass" class="form-label">New Password</label>
+            <label for="confirmnewpass" class="form-label">Confirm Password</label>
             <input type="password" class="form-control" name="confirmnewpass" id="confirmnewpass" required>
 
             <div class="col-auto mt-3">
-                <button type="submit" class="btn btn-primary">Change Password</button>
+                <button type="submit" id="signup" class="btn btn-primary">Change Password</button>
             </div>
         </form>
     </div>
-    <script>
+    <script type="module">
+        //https://getbootstrap.com/docs/5.2/components/tooltips/
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+
         let avatar = document.querySelector("#avatar");
         let colorslider = document.querySelector("#color")
         colorslider.addEventListener("input", () => {
             let val = colorslider.value
             avatar.style.backgroundColor = `hsl(${colorslider.value}, 50%, 50%)`;
         })
+        const pass1 = document.querySelector("#newpass")
+        const pass2 = document.querySelector("#confirmnewpass")
+        const submit = document.querySelector("#signup")
+
+        const passwordEquality = () => {
+            if (pass1.value === pass2.value) {
+                submit.disabled = false;
+            } else {
+                submit.disabled = true;
+            }
+        }
+        pass1.addEventListener("input", passwordEquality)
+        pass2.addEventListener("input", passwordEquality)
     </script>
 </div>
 {% include "formvalidate.html" %}
