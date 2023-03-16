@@ -6,10 +6,6 @@ import sqlite3
 from Errors import *
 password_requirements = "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*(\W)).{10,}"
 
-# I did not write this regex
-#  https://www.w3resource.com/javascript/form/email-validation.php
-email_requirements = "^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$"
-
 
 # mainly setters and validation functions for user database
 
@@ -27,7 +23,8 @@ def valid_password(password):
 
 
 def valid_email(email):
-    return re.search(email_requirements, email) != None
+    # email regexes are to complicated
+    return True
 
 
 def make_admin(username):

@@ -244,6 +244,24 @@ def manage_users():
     return redirect("/login")
 
 
+@app.route("/failedlogins")
+def failed_logins():
+    if (is_logged_in() and current_user.is_admin()):
+
+        conn = sqlite3.connect('database.db')
+        conn.row_factory = sqlite3.Row
+        fails = conn.execute(
+            "SELECT * FROM failedlogins")
+        # cast cursor of fails to dictionary readable by jinja
+        fails = [dict(row) for row in fails.fetchall()]
+        conn.close()
+
+        return render_template("./failedlogins.html", fails=fails, page="failedlogins")
+    if is_logged_in():
+        return redirect("/")
+    return redirect("/login")
+
+
 @app.route("/resetpassword")
 def password_reset_page():
     if (request.args.get('token')):

@@ -18,6 +18,9 @@
                     {% if current_user.is_admin() %}
                     <a class="nav-item nav-link
                         {% if page == 'manageusers' %} active {% endif %}" href="./manageusers">Manage Users</a>
+                    <a class="nav-item nav-link
+                        {% if page == 'failedlogins' %} active {% endif %}" href="./failedlogins">Failed Login
+                        Attempts</a>
 
                     {% endif %}
 

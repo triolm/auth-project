@@ -1,0 +1,21 @@
+{% extends "boilerplate.html" %}
+{% block content %}
+<ul class="px-0 col-md-10 offset-md-1">
+    {% for fail in fails %}
+    <li class="card my-3 w-100">
+        <div class="card-body d-flex flex-row justify-content-between col-12" id="fails">
+            <strong>{{fail.username}}
+            </strong>
+            <span class="text-muted fw-bold">{{fail.timestamp}}</span>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+<script>
+    fails = document.querySelectorAll("#fails span")
+    console.log(fails)
+    for (i of fails) {
+        i.textContent = new Date(Math.floor(i.textContent * 1000))
+    }
+</script>
+{% endblock %}
