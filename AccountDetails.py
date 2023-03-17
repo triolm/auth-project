@@ -104,3 +104,15 @@ def check_password(username, password):
             if (userObj.locked() != bool(user.get("locked"))):
                 set_locked_status(userObj.get_username(), userObj.locked())
             return userObj
+
+
+def get_user_by_username(username):
+    username = sanitise_username(username)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    # get the user of given username
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    if (user != None):
+        return User(dict(user))

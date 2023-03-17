@@ -1,7 +1,7 @@
 
 import os
 import time
-from AccountDetails import hashPassword, sanitise_username
+from AccountDetails import get_user_by_username, hashPassword, sanitise_username
 import secrets
 import sqlite3
 
@@ -45,6 +45,7 @@ def verify_password_reset_token(token, username):
     if (not resettoken):
         return False
     resettoken = dict(resettoken)
+    # password reset tokens
     if (bool(resettoken.get("used")) or time.time() - resettoken.get("timestamp") > 60*60):
         return False
     conn.close()
@@ -60,21 +61,16 @@ def expire_password_reset_token(username):
 
 
 def send_locked_email(username, url):
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    user = conn.execute(
-        'SELECT * from users WHERE username = ? ', (username,)).fetchone()
+    user = get_user_by_username(username)
     if (user == None):
         return
-    user = dict(user)
-    conn.close()
     message = Mail(
         from_email='triolm24+authapp@polyprep.org',
-        to_emails=str(user.get("email")),
+        to_emails=str(user.get_email()),
         subject='Account locked',
         # this email totally looks like a scam
-        html_content='''Hello, %s! <br> Your Auth App account has been locked due to failed login attempts. 
-        You may unlock your account by resetting your password <a href="%s/resetpassword">here</a>.''' % (username, url))
+        html_content='''Hello %s, <br> <br> Your Auth App account has been locked for one hour due to failed login attempts.
+        You may unlock your account by resetting your password <a href="%s/resetpassword">here</a>.''' % (user.get_name(), url))
     try:
         sg = SendGridAPIClient(os.getenv('SENDGRID_API_KEY'))
         response = sg.send(message)

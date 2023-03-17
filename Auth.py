@@ -10,10 +10,6 @@ from User import User
 import random
 
 # what if an account is unlocked, should it require three more attempts to lock
-# users should have ids
-# routes should be more restful
-# should a locked account be able to reset their password?
-# the first block is called the genesis block
 
 
 def new_user(username, password, name, email, isAdmin=False):
@@ -74,9 +70,10 @@ def get_user(username, password):
     log_failed_login(username)
 
     if (fails_over_thresh(username)):
-        lock_user(username)
-        if (user != None and not bool(userObj.locked())):
+        user = get_user_by_username(username)
+        if (user != None and not bool(user.locked())):
             send_locked_email(username, request.url_root)
+        lock_user(username)
         raise LoginException("Too many failed attempts; Account locked")
     raise LoginException("Username and password do not match")
 

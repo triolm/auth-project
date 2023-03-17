@@ -95,13 +95,8 @@ def post_passwd_reset():
     token = create_password_reset_token(username)
 
     # get user object and email the user if the username is valid
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    conn.close()
+    user = get_user_by_username(username)
     if (user != None):
-        user = User(dict(user))
         send_password_reset_email(
             token, user.get_email(), username, request.url_root)
     # claims that it sent the email even if the user doesn't exust
@@ -113,7 +108,7 @@ def failed_logins_page():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     fails = conn.execute(
-        "SELECT * FROM failedlogins")
+        "SELECT * FROM failedlogins ORDER BY timestamp DESC")
     # cast cursor of fails to dictionary readable by jinja
     fails = [dict(row) for row in fails.fetchall()]
     conn.close()

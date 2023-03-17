@@ -26,9 +26,6 @@
         <span>
             <label for="confirmpassword" class="form-label">Confirm Password</label>
             <input type="password" class="form-control" name="confirmpassword" id="confirmpassword" required>
-            <div class="invalid-feedback">
-                Passwords do not match
-            </div>
         </span>
 
         <!-- :( -->
@@ -44,7 +41,7 @@
                 Are you an Admin?
             </label>
             <div class="col-auto mt-3">
-                <button type="submit" id="signup" class="btn btn-primary" disabled>Sign Up</button>
+                <button type="submit" id="signup" class="btn btn-primary">Sign Up</button>
 
             </div>
             <div class="mt-2 d-flex flex-column align-items-start">
@@ -77,7 +74,7 @@
             submit.disabled = true;
         }
     }
-    pass1.addEventListener("input", passwordEquality)
+    // pass1.addEventListener("input", passwordEquality)
     pass2.addEventListener("input", passwordEquality)
 </script>
 {% include "formvalidate.html" %}
