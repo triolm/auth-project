@@ -17,8 +17,8 @@ def new_user(username, password, name, email, isAdmin=False):
     name = name.strip()
 
     # hopefully i remembered to uncomment this before i turned the project in
-    # if (username == password.lower()):
-    #     raise AccountCreationException("Username and password cannot be equal")
+    if (username == password.lower()):
+        raise AccountCreationException("Username and password cannot be equal")
 
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
