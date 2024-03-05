@@ -5,7 +5,7 @@ from flask import request
 from AccountDetails import *
 from Errors import *
 from Locking import *
-from PasswordReset import send_locked_email
+# from PasswordReset import send_locked_email
 from User import User
 import random
 
@@ -69,12 +69,12 @@ def get_user(username, password):
 
     log_failed_login(username)
 
-    if (fails_over_thresh(username)):
-        user = get_user_by_username(username)
-        if (user != None and not bool(user.locked())):
-            send_locked_email(username, request.url_root)
-        lock_user(username)
-        raise LoginException("Too many failed attempts; Account locked")
+    # if (fails_over_thresh(username)):
+    #     user = get_user_by_username(username)
+    #     if (user != None and not bool(user.locked())):
+    #         send_locked_email(username, request.url_root)
+    #     lock_user(username)
+    #     raise LoginException("Too many failed attempts; Account locked")
     raise LoginException("Username and password do not match")
 
 
